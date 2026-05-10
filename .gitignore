@@ -1,0 +1,17 @@
+# Окружение Python
+venv/
+.env
+__pycache__/
+*.py[cod]
+
+# Библиотеки Node (Фронтенд)
+frontend/node_modules/
+frontend/dist/
+
+# Файлы парсера
+parser/output/
+parser/translation_cache.json
+
+# Системные файлы
+.DS_Store
+Thumbs.db
