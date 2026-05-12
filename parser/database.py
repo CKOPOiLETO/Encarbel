@@ -21,14 +21,23 @@ log = logging.getLogger("encar")
 
 def get_database_url() -> str:
     """Берём URL из .env файла или переменной окружения."""
-    # Пробуем загрузить .env
-    env_file = Path(".env")
+    current_dir = Path(__file__).resolve().parent
+    
+    # Поднимаемся на один уровень выше — в корень проекта (Encarbel)
+    root_dir = current_dir.parent
+    env_file = root_dir / ".env"
+
+    # Если нашли файл в корне — загружаем его
     if env_file.exists():
         for line in env_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 key, _, value = line.partition("=")
                 os.environ.setdefault(key.strip(), value.strip())
+    else:
+        log.warning(f"Файл .env не найден по пути: {env_file}")
+
+    url = os.environ.get("DATABASE_URL")
 
     url = os.environ.get("DATABASE_URL")
     if not url:

@@ -15,3 +15,20 @@ parser/translation_cache.json
 # Системные файлы
 .DS_Store
 Thumbs.db
+# Вывод парсера
+output/
+*.json
+*.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp

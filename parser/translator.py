@@ -245,6 +245,23 @@ UNIQUE_OPTIONS_MAP = {
     "하이패스 시스템(ETCS + ECM 룸미러)": "Hi-Pass system (ETCS + ECM mirror)",
     "FULL LED 헤드램프":            "Full LED headlamps",
     "4단 자동변속기 & 후드 인슐레이션": "4-speed automatic & hood insulation",
+
+    # ── Модели ───────────────────────────────────────────────────────────
+    "싼타페": "Santa Fe",
+    "쏘렌토": "Sorento",
+    "스포티지": "Sportage",
+    "그랜저": "Grandeur",
+    "아반떼": "Avante (Elantra)",
+    "코나": "Kona",
+    "팰리세이드": "Palisade",
+    "렉스턴": "Rexton",
+    "코란도": "Korando",
+    "티볼리": "Tivoli",
+    "카니발": "Carnival",
+    "봉고": "Bongo",
+    "스타리아": "Staria",
+    
+
 }
 
 
@@ -340,6 +357,21 @@ UNIQUE_OPTIONS_MAP = {
     "하이패스 시스템(ETCS + ECM 룸미러)": "Hi-Pass System (ETCS + ECM Mirror)",
     "에어컨 & 콤비필터":          "Air Conditioner & Combi Filter",
     "FULL LED 헤드램프":          "Full LED Headlamps",
+    
+    ######################################################
+    "싼타페": "Santa Fe",
+    "쏘렌토": "Sorento",
+    "스포티지": "Sportage",
+    "그랜저": "Grandeur",
+    "아반떼": "Avante (Elantra)",
+    "코나": "Kona",
+    "팰리세이드": "Palisade",
+    "렉스턴": "Rexton",
+    "코란도": "Korando",
+    "티볼리": "Tivoli",
+    "카니발": "Carnival",
+    "봉고": "Bongo",
+    "스타리아": "Staria",
 }
 
 

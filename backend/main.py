@@ -34,17 +34,22 @@ app.add_middleware(
 )
 
 @app.get("/api/cars")
+@app.get("/api/cars")
 async def get_cars(
     manufacturer: str = None,
+    model_group: str = None, # Теперь используем группу
     model: str = None,
+    body_type: str = None,   # Новый фильтр
     year_min: int = None,
     year_max: int = None,
     price_min: int = None,
     price_max: int = None,
     mileage_min: int = None,
     mileage_max: int = None,
+    displacement_min: int = None, # Фильтр по объему
+    displacement_max: int = None,
     fuel: str = None,
-    search: str = None, 
+    search: str = None,
     sort: str = "newest",
     limit: int = 30,
     offset: int = 0
@@ -54,18 +59,23 @@ async def get_cars(
     params = []
     
     # 2. Глобальный поиск (если передан)
-    if search: 
+    if search:
         params.append(f"%{search}%")
         query += f" AND (title ILIKE ${len(params)} OR manufacturer ILIKE ${len(params)} OR model ILIKE ${len(params)})"
     
     # 3. Фильтры (добавляем к существующему query)
-    if manufacturer: 
+    if manufacturer:
         params.append(manufacturer)
-        query += f" AND manufacturer ILIKE ${len(params)}"
-        
-    if model: 
-        params.append(f"%{model}%")
-        query += f" AND model ILIKE ${len(params)}"
+        query += f" AND manufacturer = ${len(params)}"
+
+    if model_group:
+        params.append(model_group)
+        query += f" AND model_group = ${len(params)}"
+    if model:
+        params.append(model)
+        query += f" AND model = ${len(params)}"
+    if body_type: 
+        params.append(body_type); query += f" AND body_type ILIKE ${len(params)}"
         
     if year_min: 
         params.append(year_min)
@@ -94,6 +104,8 @@ async def get_cars(
     if fuel: 
         params.append(fuel)
         query += f" AND fuel ILIKE ${len(params)}"
+    if displacement_min: params.append(displacement_min); query += f" AND displacement_cc >= ${len(params)}"
+    if displacement_max: params.append(displacement_max); query += f" AND displacement_cc <= ${len(params)}"
 
     # 4. Сортировка
     if sort == "price_asc": 
@@ -220,3 +232,48 @@ async def get_rates():
             "KRW": 0.00245, # (Это 2.45 BYN за 1000 вон)
             "fallback": True
         }
+    
+
+    
+@app.get("/api/filters")
+async def get_filter_options():
+    async with pool.acquire() as conn:
+        # 1. Получаем данные для дерева моделей
+        # Мы берем manufacturer, model_group (группа) и model (поколение)
+        rows = await conn.fetch("""
+            SELECT DISTINCT manufacturer, model_group, model 
+            FROM cars 
+            WHERE is_active = TRUE 
+              AND manufacturer IS NOT NULL AND manufacturer != ''
+              AND model_group IS NOT NULL AND model_group != ''
+        """)
+        
+        # 2. Получаем справочники для остальных фильтров
+        fuel_rows = await conn.fetch("SELECT DISTINCT fuel FROM cars WHERE is_active = TRUE AND fuel != ''")
+        body_rows = await conn.fetch("SELECT DISTINCT body_type FROM cars WHERE is_active = TRUE AND body_type != ''")
+
+    # Строим иерархию: Марка -> Группа -> Список поколений
+    hierarchy = {}
+    for r in rows:
+        m = r['manufacturer'].strip()
+        mg = r['model_group'].strip()
+        md = r['model'].strip()
+        
+        if m not in hierarchy:
+            hierarchy[m] = {}
+        if mg not in hierarchy[m]:
+            hierarchy[m][mg] = []
+        if md not in hierarchy[m][mg]:
+            hierarchy[m][mg].append(md)
+
+    # Сортируем списки для алфавитного порядка
+    for m in hierarchy:
+        for mg in hierarchy[m]:
+            hierarchy[m][mg].sort()
+
+    return {
+        "manufacturers": sorted(list(hierarchy.keys())),
+        "hierarchy": hierarchy, # <--- ЭТОТ КЛЮЧ ЖДЕТ ФРОНТЕНД
+        "fuels": sorted([f['fuel'] for f in fuel_rows]),
+        "body_types": sorted([b['body_type'] for b in body_rows])
+    }

@@ -92,15 +92,17 @@ def parse_vehicle(data: dict, car: CarData, option_map: dict) -> tuple[Optional[
     """
     cat = data.get("category") or {}
 
-    manufacturer_ko = cat.get("manufacturerName") or ""
-    model_ko        = cat.get("modelName") or cat.get("modelGroupName") or ""
-    grade_ko        = cat.get("gradeName")       or ""
-    grade_detail_ko = cat.get("gradeDetailName") or ""
-    grade_en        = cat.get("gradeEnglishName") or ""  # уже на английском!
+    manufacturer_ko    = cat.get("manufacturerName")      or ""
+    model_ko           = cat.get("modelName")              or cat.get("modelGroupName") or ""
+    model_group_en     = cat.get("modelGroupEnglishName")  or ""
+    model_group_ko     = cat.get("modelGroupName")         or ""
+    grade_ko           = cat.get("gradeName")              or ""
+    grade_detail_ko    = cat.get("gradeDetailName")        or ""
+    grade_en           = cat.get("gradeEnglishName")       or ""
 
     car.manufacturer = translate_static(manufacturer_ko, MANUFACTURER_MAP)
-    car.model        = model_ko   # переведём через API
-    car.model_group  = cat.get("modelGroupName") or ""  # базовая модель для фильтров
+    car.model        = model_ko        # переведём через LibreTranslate
+    car.model_group  = model_group_en or model_group_ko  # EN из API, иначе KO → переведём
     car.grade        = grade_en or " ".join(filter(None, [grade_ko, grade_detail_ko]))
     raw_year     = cat.get("formYear")
     car.year     = int(raw_year) if raw_year else None
