@@ -27,8 +27,8 @@ async def main():
         parser._option_map = await parser.load_option_map()
 
         # 3. Парсим 100 авто
-        print("\nПарсим 100 авто...")
-        cars = await parser.fetch_all(total=100)
+        print("\nПарсим 500 авто...")
+        cars = await parser.fetch_all(total=500)
         print(f"✅ Спарсено: {len(cars)} авто")
 
         # 4. Записываем в БД

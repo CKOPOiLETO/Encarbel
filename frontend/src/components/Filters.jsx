@@ -134,7 +134,7 @@ function RangeDropdown({ label, minVal, maxVal, onChange, placeholderMin = 'От
 
 // --- ОСНОВНОЙ КОМПОНЕНТ ФИЛЬТРОВ ---
 export default function Filters({ filters, setFilters }) {
-  const [options, setOptions] = useState({ manufacturers: [], hierarchy: {}, fuels: [], body_types: [] });
+  const [options, setOptions] = useState({ manufacturers: [], hierarchy: {}, fuels: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -143,14 +143,16 @@ export default function Filters({ filters, setFilters }) {
   }, []);
 
   // 1. Вычисляем группы моделей (безопасно)
-  const availableGroups = (filters.manufacturer && options.hierarchy) 
-    ? Object.keys(options.hierarchy[filters.manufacturer] || {}) 
+  const availableGroups = (filters.manufacturer && options.hierarchy)
+    ? Object.keys(options.hierarchy[filters.manufacturer] || {})
     : [];
 
-  // 2. Конкретные версии (Santa Fe MX5, Santa Fe TM и т.д.)
+  // 2. Конкретные версии модели (если есть группы)
   const availableSpecificModels = (filters.manufacturer && filters.model_group && options.hierarchy)
     ? (options.hierarchy[filters.manufacturer]?.[filters.model_group] || [])
     : [];
+
+
 
   const handleDropdownChange = (name) => (value) => {
     setFilters(prev => {
@@ -192,11 +194,11 @@ export default function Filters({ filters, setFilters }) {
 
         {/* Уровень 2: Базовая модель (Group) */}
         <DropdownSearch
-          label="Модель"
+          label="Модель (группа)"
           options={availableGroups}
           value={filters.model_group || ''}
           onChange={handleDropdownChange('model_group')}
-          placeholder={filters.manufacturer ? "Все модели" : "Сначала выберите марку"}
+          placeholder={filters.manufacturer ? "Все группы" : "Сначала выберите марку"}
           disabled={!filters.manufacturer}
         />
 
@@ -206,16 +208,11 @@ export default function Filters({ filters, setFilters }) {
           options={availableSpecificModels}
           value={filters.model || ''}
           onChange={handleDropdownChange('model')}
-          placeholder={filters.model_group ? "Все поколения" : "Выберите модель"}
+          placeholder={filters.model_group ? "Все модели" : "Выберите группу"}
           disabled={!filters.model_group}
         />
 
-        <DropdownSearch
-          label="Тип кузова"
-          options={options.body_types}
-          value={filters.body_type || ''}
-          onChange={handleDropdownChange('body_type')}
-        />
+
         <hr className="my-2 border-gray-50" />
         <RangeDropdown
           label="Год выпуска"
@@ -237,7 +234,7 @@ export default function Filters({ filters, setFilters }) {
 
         <DropdownSearch
           label="Тип топлива"
-          options={options.fuels}
+          options={options.fuels || []}
           value={filters.fuel || ''}
           onChange={handleDropdownChange('fuel')}
           placeholder="Любое топливо"

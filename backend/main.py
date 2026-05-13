@@ -148,37 +148,6 @@ async def get_car(car_id: int):
     d['standard_options'] = json.loads(d['standard_options']) if d['standard_options'] else []
     d['unique_options'] = json.loads(d['unique_options']) if d['unique_options'] else[]
     return d
-@app.get("/api/filters")
-async def get_filter_options():
-    async with pool.acquire() as conn:
-        # Получаем все уникальные пары Марка + Модель
-        rows = await conn.fetch("""
-            SELECT DISTINCT manufacturer, model 
-            FROM cars 
-            WHERE is_active = TRUE AND manufacturer != '' AND model != ''
-        """)
-        
-        # Получаем виды топлива
-        fuel_rows = await conn.fetch("SELECT DISTINCT fuel FROM cars WHERE is_active = TRUE AND fuel != ''")
-
-    # Группируем модели по маркам
-    models_map = {}
-    manufacturers = set()
-    
-    for r in rows:
-        m_make = r['manufacturer']
-        m_model = r['model']
-        manufacturers.add(m_make)
-        
-        if m_make not in models_map:
-            models_map[m_make] = []
-        models_map[m_make].append(m_model)
-
-    return {
-        "manufacturers": sorted(list(manufacturers)),
-        "models_map": models_map, # Вместо плоского списка отдаем карту
-        "fuels": [f['fuel'] for f in fuel_rows]
-    }
 
 
 
@@ -238,42 +207,31 @@ async def get_rates():
 @app.get("/api/filters")
 async def get_filter_options():
     async with pool.acquire() as conn:
-        # 1. Получаем данные для дерева моделей
-        # Мы берем manufacturer, model_group (группа) и model (поколение)
+        # Получаем данные для вложенной карты моделей
         rows = await conn.fetch("""
-            SELECT DISTINCT manufacturer, model_group, model 
-            FROM cars 
-            WHERE is_active = TRUE 
+            SELECT DISTINCT manufacturer, model_group, model
+            FROM cars
+            WHERE is_active = TRUE
               AND manufacturer IS NOT NULL AND manufacturer != ''
               AND model_group IS NOT NULL AND model_group != ''
+              AND model IS NOT NULL AND model != ''
         """)
-        
-        # 2. Получаем справочники для остальных фильтров
         fuel_rows = await conn.fetch("SELECT DISTINCT fuel FROM cars WHERE is_active = TRUE AND fuel != ''")
-        body_rows = await conn.fetch("SELECT DISTINCT body_type FROM cars WHERE is_active = TRUE AND body_type != ''")
-
-    # Строим иерархию: Марка -> Группа -> Список поколений
-    hierarchy = {}
-    for r in rows:
-        m = r['manufacturer'].strip()
-        mg = r['model_group'].strip()
-        md = r['model'].strip()
-        
-        if m not in hierarchy:
-            hierarchy[m] = {}
-        if mg not in hierarchy[m]:
-            hierarchy[m][mg] = []
-        if md not in hierarchy[m][mg]:
-            hierarchy[m][mg].append(md)
-
-    # Сортируем списки для алфавитного порядка
-    for m in hierarchy:
-        for mg in hierarchy[m]:
-            hierarchy[m][mg].sort()
-
-    return {
-        "manufacturers": sorted(list(hierarchy.keys())),
-        "hierarchy": hierarchy, # <--- ЭТОТ КЛЮЧ ЖДЕТ ФРОНТЕНД
-        "fuels": sorted([f['fuel'] for f in fuel_rows]),
-        "body_types": sorted([b['body_type'] for b in body_rows])
-    }
+        # Строим вложенную структуру: manufacturer → model_group → [models]
+        models_map = {}
+        manufacturers = set()
+        for r in rows:
+            mfr = r['manufacturer'].strip()
+            grp = r['model_group'].strip()
+            model = r['model'].strip()
+            manufacturers.add(mfr)
+            models_map.setdefault(mfr, {}).setdefault(grp, set()).add(model)
+        # Преобразуем множества в отсортированные списки
+        for mfr, groups in models_map.items():
+            for grp, models in groups.items():
+                groups[grp] = sorted(models)
+        return {
+            "manufacturers": sorted(list(manufacturers)),
+            "hierarchy": models_map,
+            "fuels": [f['fuel'] for f in fuel_rows]
+        }
