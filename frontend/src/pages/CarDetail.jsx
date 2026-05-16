@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, Calculator, Info, ShieldCheck, Truck, ExternalLink } from 'lucide-react';
 import { BelarusCustomsCalculator } from '../utils/calculator';
 
 export default function CarDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [car, setCar] = useState(null);
   const [rates, setRates] = useState(null);
   const [mainPhoto, setMainPhoto] = useState(null);
@@ -126,9 +127,9 @@ export default function CarDetail() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-20">
-      <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-6 font-medium transition-colors">
+      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-6 font-medium transition-colors cursor-pointer">
         <ArrowLeft size={20} /> Назад в каталог
-      </Link>
+      </button>
 
       {/* ВАЖНО: Добавлен items-start для правильной работы sticky */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
@@ -140,7 +141,7 @@ export default function CarDetail() {
             <div className="bg-gray-100 rounded-xl overflow-hidden h-[350px] md:h-[550px] mb-4 border">
               <img src={mainPhoto} alt="Main" className="w-full h-full object-cover" />
             </div>
-            <div className="flex overflow-x-auto gap-2 pb-2 hide-scrollbar">
+            <div className="flex overflow-x-auto gap-2 pb-2 costum-scrollbar">
               {car.photos?.map((p, i) => (
                 <img 
                   key={i} src={p} 

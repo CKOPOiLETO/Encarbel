@@ -8,13 +8,20 @@ const LIMIT = 30;
 export default function Catalog() {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({});
-  const [offset, setOffset] = useState(0);
+  const [filters, setFilters] = useState(() => {
+    const saved = sessionStorage.getItem('encar_filters');
+    return saved ? JSON.parse(saved) : {};
+  });  const [offset, setOffset] = useState(0);
   const[hasMore, setHasMore] = useState(true);
   const [rates, setRates] = useState(null);
   // Добавляем отдельный стейт для поля ввода (чтобы не спамить запросами)
-  const [searchInput, setSearchInput] = useState('');
-
+  const [searchInput, setSearchInput] = useState(() => {
+    const saved = sessionStorage.getItem('encar_filters');
+    return saved ? (JSON.parse(saved).search || '') : '';
+  });
+  useEffect(() => {
+    sessionStorage.setItem('encar_filters', JSON.stringify(filters));
+  }, [filters]);
   // Задержка ввода (Debounce): ждем 500мс после того как пользователь перестал печатать,
   // и только потом обновляем глобальные фильтры, что спровоцирует запрос к API
   useEffect(() => {
