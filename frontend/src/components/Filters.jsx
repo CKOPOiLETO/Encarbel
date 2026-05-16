@@ -175,12 +175,12 @@ function RangeDropdown({ label, minVal, maxVal, onChange, placeholderMin = 'От
     const [rates, setRates] = useState(null);
 
     useEffect(() => {
-      axios.get('http://localhost:8000/api/filters')
+      axios.get('/filters')
         .then(res => { setOptions(res.data); setLoading(false); });
     }, []);
 
     useEffect(() => {
-      axios.get('http://localhost:8000/api/rates')
+      axios.get('/rates')
         .then(res => setRates(res.data));
     }, []);
 

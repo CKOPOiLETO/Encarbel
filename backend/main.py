@@ -142,8 +142,8 @@ async def get_cars(
 
     # 3. Применяем фильтры
     if search:
-        params.append(f"%{search}%")
-        query += f" AND (title ILIKE ${len(params)} OR manufacturer ILIKE ${len(params)} OR model ILIKE ${len(params)})"
+        params.append(f"%{search.lower()}%")
+        query += f" AND (LOWER(title) LIKE ${len(params)} OR LOWER(manufacturer) LIKE ${len(params)} OR LOWER(model) LIKE ${len(params)})"
     if manufacturer: params.append(manufacturer); query += f" AND manufacturer = ${len(params)}"
     if model_group: params.append(model_group); query += f" AND model_group = ${len(params)}"
     if model: params.append(model); query += f" AND model = ${len(params)}"

@@ -11,27 +11,24 @@ export default function CarDetail() {
   const [mainPhoto, setMainPhoto] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Состояния для калькулятора
-  const [isPrivileged, setIsPrivileged] = useState(true); // 140 указ
-  const [volume, setVolume] = useState(1600); // Объем по умолчанию
+  const [isPrivileged, setIsPrivileged] = useState(true);
+  const [volume, setVolume] = useState(1600);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [carRes, ratesRes] = await Promise.all([
-          axios.get(`http://localhost:8000/api/cars/${id}`),
-          axios.get(`http://localhost:8000/api/rates`)
+          axios.get(`/cars/${id}`),
+          axios.get(`/rates`)
         ]);
         
         const carData = carRes.data;
         setCar(carData);
         setRates(ratesRes.data);
 
-        // Автоматически ставим объем из базы, если он есть
         if (carData.displacement_cc) {
           setVolume(carData.displacement_cc);
         }
-
         if (carData.photos && carData.photos.length > 0) {
           setMainPhoto(carData.photos[0]);
         }
@@ -44,22 +41,18 @@ export default function CarDetail() {
     fetchData();
   }, [id]);
 
-  // Расчет всех расходов (Memoized для производительности)
-  // Расчет всех расходов
   const costs = useMemo(() => {
     if (!car || !rates) return null;
 
-    const calc = new BelarusCustomsCalculator(); // Обновленное название класса
+    const calc = new BelarusCustomsCalculator();
     
     const priceByn = car.price_won * rates.KRW;
     const priceUsd = Math.round(priceByn / rates.USD);
     const priceEur = priceByn / rates.EUR;
 
     const age = (new Date().getFullYear() - car.year) <= 3 ? 'new' : (new Date().getFullYear() - car.year) <= 5 ? 'medium' : 'old';
-    
-    // АВТО-ОПРЕДЕЛЕНИЕ ЭЛЕКТРОМОБИЛЯ
     const isElectric = car.fuel?.toLowerCase().includes('electric') || car.fuel?.toLowerCase().includes('전기');
-
+    
     const dutyResult = calc.calculate({
       engineType: isElectric ? 'electric' : 'fuel',
       personType: 'physical',
@@ -76,7 +69,7 @@ export default function CarDetail() {
       carUsd: priceUsd,
       shippingUsd: 6600,
       dutyUsd: Math.round(eurToUsd(dutyResult.customsDuty)),
-      utilizationUsd: Math.round(bynToUsd(dutyResult.utilizationFee)), // Утиль в BYN -> USD
+      utilizationUsd: Math.round(bynToUsd(dutyResult.utilizationFee)), 
       customsFeeUsd: Math.round(eurToUsd(dutyResult.customsFee)),
       declarantUsd: Math.round(bynToUsd(300)),
       warehouseUsd: Math.round(bynToUsd(400)),
@@ -85,8 +78,45 @@ export default function CarDetail() {
 
     const total = Object.values(items).reduce((a, b) => a + b, 0);
 
-    return { ...items, total, priceEur, isElectric }; // Вернули флаг isElectric для UI
+    return { ...items, total, priceEur };
   }, [car, rates, isPrivileged, volume]);
+
+  // --- ФУНКЦИЯ ПЕРЕВОДА ЦЕН ОПЦИЙ ---
+  const renderOption = (opt, index) => {
+    // Ищем паттерн цены, который оставляет парсер: "(1,100,000₩)"
+    const match = opt.match(/\(([\d,]+)₩\)/);
+    
+    if (match && rates) {
+      // Достаем чистое число вон
+      const wonPrice = parseInt(match[1].replace(/,/g, ''), 10);
+      
+      // Конвертируем
+      const bynPrice = Math.round(wonPrice * rates.KRW);
+      const usdPrice = Math.round(bynPrice / rates.USD);
+      
+      // Отрезаем старую корейскую цену из строки
+      const cleanName = opt.replace(/—.*만원.*\)/, '').trim();
+      
+      return (
+        <li key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-50 pb-2 last:border-0">
+          <span className="flex items-start gap-2">
+            <span className="text-blue-500 font-bold mt-0.5">✓</span> 
+            <span className="text-gray-700">{cleanName}</span>
+          </span>
+          <span className="text-[10px] font-bold text-gray-500 whitespace-nowrap bg-gray-100 px-2 py-1 rounded w-max">
+            ≈ {usdPrice}$ / {bynPrice} BYN
+          </span>
+        </li>
+      );
+    }
+    
+    // Если цены у опции нет (бесплатная/базовая), выводим как обычно
+    return (
+      <li key={index} className="flex items-start gap-2 border-b border-gray-50 pb-2 last:border-0 text-gray-700">
+        <span className="text-blue-500 font-bold mt-0.5">✓</span> {opt}
+      </li>
+    );
+  };
 
   if (loading || !car) return (
     <div className="flex justify-center py-20">
@@ -100,29 +130,28 @@ export default function CarDetail() {
         <ArrowLeft size={20} /> Назад в каталог
       </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      {/* ВАЖНО: Добавлен items-start для правильной работы sticky */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
         
-        {/* ЛЕВАЯ КОЛОНКА: Контент (8/12) */}
+        {/* ЛЕВАЯ КОЛОНКА */}
         <div className="lg:col-span-8 space-y-8">
           
-          {/* Галерея */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
             <div className="bg-gray-100 rounded-xl overflow-hidden h-[350px] md:h-[550px] mb-4 border">
               <img src={mainPhoto} alt="Main" className="w-full h-full object-cover" />
             </div>
-            <div className="grid grid-cols-5 md:grid-cols-8 gap-2 overflow-x-auto pb-2">
-              {car.photos?.slice(0, 24).map((p, i) => (
+            <div className="flex overflow-x-auto gap-2 pb-2 hide-scrollbar">
+              {car.photos?.map((p, i) => (
                 <img 
                   key={i} src={p} 
                   onClick={() => setMainPhoto(p)}
-                  className={`w-full h-16 md:h-20 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${mainPhoto === p ? 'border-blue-600' : 'border-transparent opacity-60 hover:opacity-100'}`} 
+                  className={`w-20 h-16 md:w-24 md:h-20 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${mainPhoto === p ? 'border-blue-600' : 'border-transparent opacity-60 hover:opacity-100'}`} 
                   alt="Thumb" 
                 />
               ))}
             </div>
           </div>
 
-          {/* Технические характеристики */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
             <h2 className="text-2xl font-extrabold mb-6 flex items-center gap-2 text-gray-800">
               <Info className="text-blue-600" size={24} /> Основная информация
@@ -140,16 +169,11 @@ export default function CarDetail() {
             </div>
           </div>
 
-          {/* Опции */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-bold text-xl mb-6 text-gray-800 border-l-4 border-blue-600 pl-3">Уникальные опции</h3>
-              <ul className="space-y-3 text-sm text-gray-700">
-                {car.unique_options?.length > 0 ? car.unique_options.map((opt, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-blue-500 font-bold">✓</span> {opt}
-                  </li>
-                )) : <li className="text-gray-400 italic">Данные отсутствуют</li>}
+              <ul className="space-y-3 text-sm">
+                {car.unique_options?.length > 0 ? car.unique_options.map((opt, i) => renderOption(opt, i)) : <li className="text-gray-400 italic">Данные отсутствуют</li>}
               </ul>
             </div>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -163,9 +187,10 @@ export default function CarDetail() {
           </div>
         </div>
 
-        {/* ПРАВАЯ КОЛОНКА: Калькулятор (4/12) */}
+        {/* ПРАВАЯ КОЛОНКА (Калькулятор) */}
         <div className="lg:col-span-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-blue-50 p-6 sticky top-24">
+          {/* ВАЖНО: Добавлен max-h-[calc(100vh-6rem)] и overflow-y-auto */}
+          <div className="bg-white rounded-2xl shadow-2xl border border-blue-50 p-6 sticky top-24 max-h-[calc(100vh-6rem)] overflow-y-auto hide-scrollbar">
             <div className="flex items-center justify-between mb-8">
                <h2 className="text-xl font-black text-gray-900 uppercase flex items-center gap-2">
                 <Calculator className="text-blue-600" /> Смета расходов
@@ -173,7 +198,6 @@ export default function CarDetail() {
               <span className="bg-blue-600 text-white text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">USD</span>
             </div>
 
-            {/* Настройки калькулятора */}
             <div className="bg-gray-50 rounded-2xl p-5 mb-8 space-y-5 border border-gray-100">
               <div className="flex justify-between items-center">
                 <label className="text-sm font-bold text-gray-700 cursor-pointer" htmlFor="priv">Указ №140 (Льгота 50%)</label>
@@ -195,7 +219,6 @@ export default function CarDetail() {
               </div>
             </div>
 
-            {/* Список расходов */}
             {costs && (
               <div className="space-y-5">
                 <div className="flex justify-between items-center">
@@ -239,20 +262,11 @@ export default function CarDetail() {
                   <span className="font-bold text-lg text-green-700">${costs.companyFeeUsd}</span>
                 </div>
 
-                {/* Итоговая плашка */}
-                {/* Итоговая плашка в USD */}
                 <div className="mt-8 bg-gray-900 rounded-3xl p-6 text-white shadow-xl shadow-gray-200 transform hover:scale-[1.02] transition-transform">
                   <div className="flex justify-between items-end">
                     <span className="text-xs font-bold uppercase tracking-widest opacity-60">Итого:</span>
                     <span className="text-4xl font-black tracking-tighter">${costs.total.toLocaleString()}</span>
                   </div>
-                </div>
-                {/* Итого в BYN */}
-                <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-                  <span className="text-gray-500 text-sm font-medium flex items-center gap-2">
-                    <ShieldCheck size={16} className="text-green-600"/> 5. Итого в BYN
-                  </span>
-                  <span className="font-bold text-lg text-green-700">{Math.round(costs.total * rates.USD).toLocaleString()} BYN</span>
                 </div>
                 
                 <div className="pt-6 space-y-1">
@@ -267,7 +281,7 @@ export default function CarDetail() {
                   href={car.url} target="_blank" rel="noreferrer"
                   className="mt-4 flex items-center justify-center gap-2 w-full bg-blue-50 text-blue-600 py-4 rounded-2xl font-black text-sm uppercase hover:bg-blue-100 transition-colors"
                 >
-                  Карточка на Encar.com <ExternalLink size={16} />
+                  Оригинал на Encar <ExternalLink size={16} />
                 </a>
               </div>
             )}

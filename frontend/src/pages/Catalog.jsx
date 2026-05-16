@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import CarCard from '../components/CarCard';
 import Filters from '../components/Filters';
-
+import BottomMarketSlider from '../components/BottomMarketSlider';
 const LIMIT = 30;
 
 export default function Catalog() {
@@ -24,7 +24,7 @@ export default function Catalog() {
     return () => clearTimeout(timer);
   }, [searchInput]);
   useEffect(() => {
-    axios.get('http://localhost:8000/api/rates').then(res => setRates(res.data));
+    axios.get('/rates').then(res => setRates(res.data));
   }, []);
   // Ссылка на "маяк" внизу списка
   const observer = useRef();
@@ -60,7 +60,7 @@ useEffect(() => {
       // Мы отправляем параметры КАК ЕСТЬ, без конвертаций!
       const apiParams = { ...filters, limit: LIMIT, offset: offset };
 
-      const { data } = await axios.get('http://localhost:8000/api/cars', { 
+      const { data } = await axios.get('/cars', { 
         params: apiParams 
       });
 
@@ -85,7 +85,7 @@ useEffect(() => {
 
     const interval = setInterval(async () => {
       try {
-        const { data } = await axios.get('http://localhost:8000/api/cars', { 
+        const { data } = await axios.get('/cars', { 
           params: { ...filters, limit: LIMIT, offset: 0 } 
         });
         
@@ -133,6 +133,10 @@ useEffect(() => {
             <option value="price_desc">Сначала дороже</option>
           </select>
         </div>
+        {/* Показываем его только если сортировка НЕ "price_asc" */}
+        {filters.sort !== 'price_asc' && (
+           <BottomMarketSlider filters={filters} rates={rates} />
+        )}
 
         {/* Сетка автомобилей */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

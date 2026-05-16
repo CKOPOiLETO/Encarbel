@@ -5,9 +5,9 @@ export default function About() {
       <h1 className="text-3xl font-bold mb-4">О нас и Контакты</h1>
       <p className="text-gray-500 mb-6">Мы помогаем привозить лучшие автомобили из Южной Кореи.</p>
       <div className="inline-block text-left bg-gray-50 p-6 rounded-lg">
-        <p>📞 <strong>Телефон:</strong> +7 (999) 000-00-00</p>
-        <p>📧 <strong>Email:</strong> info@encar-export.ru</p>
-        <p>📍 <strong>Офис:</strong> г. Москва, Москва Сити</p>
+        <p>📞 <strong>Телефон:</strong> +372 (29) 000-00-00</p>
+        <p>📧 <strong>Email:</strong> info@encar-export.by</p>
+        <p>📍 <strong>Офис:</strong> г. Минск, Победителей 108</p>
       </div>
     </div>
   );
