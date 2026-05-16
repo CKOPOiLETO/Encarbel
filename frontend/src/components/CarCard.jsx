@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Calendar, Gauge, Fuel } from 'lucide-react';
+import { CarCalculator } from '../utils/calculator';
 
 export default function CarCard({ car, rates }) {
   // Проверка наличия фото
@@ -10,8 +11,37 @@ export default function CarCard({ car, rates }) {
   // Расчет цен только если курсы переданы
   // 1. Вона -> Белорусский рубль
   const priceByn = rates ? Math.round(car.price_won * rates.KRW) : null;
-  // 2. Белорусский рубль -> Евро
-  const priceEur = (priceByn && rates) ? Math.round(priceByn / rates.EUR) : null;
+  // 2. Белорусский рубль -> Доллар США
+  const priceUsd = (priceByn && rates) ? Math.round(priceByn / rates.USD) : null;
+
+// Полная стоимость "под ключ"
+let finalPrice = { totalByn: null, totalUsd: null };
+if (rates && priceByn !== null) {
+  const priceEur = priceByn / rates.EUR;
+  const volume = car.displacement_cc || 0;
+  const ageCategory = (new Date().getFullYear() - car.year) <= 3 ? 'new' : ((new Date().getFullYear() - car.year) <= 5 ? 'medium' : 'old');
+  const calc = new CarCalculator();
+  const dutyResult = calc.calculate({
+    engineType: 'fuel',
+    personType: 'physical',
+    priceEur,
+    engineVolumeCm3: volume,
+    ageCategory,
+    isPrivileged: true,
+  });
+  const bynToUsd = (byn) => byn / rates.USD;
+  const eurToUsd = (eur) => (eur * rates.EUR) / rates.USD;
+  const dutyUsd = Math.round(eurToUsd(dutyResult.customsDuty));
+  const utilizationUsd = Math.round(bynToUsd(dutyResult.utilizationFee));
+  const customsFeeUsd = Math.round(eurToUsd(dutyResult.customsFee));
+  const declarantUsd = Math.round(bynToUsd(300));
+  const warehouseUsd = Math.round(bynToUsd(400));
+  const companyFeeUsd = Math.round(bynToUsd(950));
+  const shippingUsd = 6600;
+  const totalUsd = priceUsd + shippingUsd + dutyUsd + utilizationUsd + customsFeeUsd + declarantUsd + warehouseUsd + companyFeeUsd;
+  const totalByn = Math.round(totalUsd * rates.USD);
+  finalPrice = { totalByn, totalUsd };
+}
 
   return (
     <Link 
@@ -41,17 +71,17 @@ export default function CarCard({ car, rates }) {
         {/* Блок цен */}
         <div className="mb-4">
           <div className="text-blue-600 font-black text-2xl tracking-tight">
-            {priceByn !== null ? (
-              `${priceByn.toLocaleString('ru-RU')} BYN`
+            {finalPrice.totalByn !== null ? (
+              `${finalPrice.totalByn.toLocaleString('ru-RU')} BYN`
             ) : (
               <span className="text-gray-300 animate-pulse">... BYN</span>
             )}
           </div>
           <div className="text-gray-400 font-semibold text-sm">
-            {priceEur !== null ? (
-              `≈ ${priceEur.toLocaleString('ru-RU')} €`
+            {finalPrice.totalUsd !== null ? (
+              `${finalPrice.totalUsd.toLocaleString('en-US')} $`
             ) : (
-              <span className="text-gray-200 animate-pulse">... €</span>
+              <span className="text-gray-200 animate-pulse">... $</span>
             )}
           </div>
         </div>

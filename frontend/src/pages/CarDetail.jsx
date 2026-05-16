@@ -239,11 +239,19 @@ export default function CarDetail() {
                 </div>
 
                 {/* Итоговая плашка */}
+                {/* Итоговая плашка в USD */}
                 <div className="mt-8 bg-gray-900 rounded-3xl p-6 text-white shadow-xl shadow-gray-200 transform hover:scale-[1.02] transition-transform">
                   <div className="flex justify-between items-end">
                     <span className="text-xs font-bold uppercase tracking-widest opacity-60">Итого:</span>
                     <span className="text-4xl font-black tracking-tighter">${costs.total.toLocaleString()}</span>
                   </div>
+                </div>
+                {/* Итого в BYN */}
+                <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                  <span className="text-gray-500 text-sm font-medium flex items-center gap-2">
+                    <ShieldCheck size={16} className="text-green-600"/> 5. Итого в BYN
+                  </span>
+                  <span className="font-bold text-lg text-green-700">{Math.round(costs.total * rates.USD).toLocaleString()} BYN</span>
                 </div>
                 
                 <div className="pt-6 space-y-1">

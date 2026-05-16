@@ -126,14 +126,14 @@ export default function CalculatorPage() {
               <span className="text-gray-600">Таможенные платежи:</span>
               <span className="text-xl font-bold">{result.totalEur.toLocaleString()} €</span>
             </div>
-            {rates && (
+            {/* {rates && (
               <div className="flex justify-between items-center pt-4 border-t border-gray-200">
                 <span className="text-gray-800 font-medium">Итого с авто:</span>
                 <span className="text-2xl font-extrabold text-blue-600">
                   {result.totalByn?.toLocaleString()} BYN
                 </span>
               </div>
-            )}
+            )} */}
             <p className="text-[11px] text-gray-400 mt-4 text-center">
               Курс НБРБ: 1 € = {rates?.EUR?.toFixed(4)} BYN. Расчет носит справочный характер.
             </p>

@@ -50,28 +50,34 @@ export default function Catalog() {
   }, [filters]);
 
   // Основная загрузка данных
-  useEffect(() => {
-    const fetchCars = async () => {
-      setLoading(true);
-      try {
-        const { data } = await axios.get('http://localhost:8000/api/cars', { 
-          params: { ...filters, limit: LIMIT, offset: offset } 
-        });
+  // Внутри useEffect, где происходит загрузка данных (fetchCars)
 
-        setCars(prev => {
-          if (offset === 0) return data;
-          return [...prev, ...data];
-        });
+// Основная загрузка данных
+useEffect(() => {
+  const fetchCars = async () => {
+    setLoading(true);
+    try {
+      // Мы отправляем параметры КАК ЕСТЬ, без конвертаций!
+      const apiParams = { ...filters, limit: LIMIT, offset: offset };
 
-        setHasMore(data.length === LIMIT);
-      } catch (error) {
-        console.error("Ошибка загрузки:", error);
-      }
-      setLoading(false);
-    };
+      const { data } = await axios.get('http://localhost:8000/api/cars', { 
+        params: apiParams 
+      });
 
-    fetchCars();
-  }, [filters, offset]);
+      setCars(prev => {
+        if (offset === 0) return data;
+        return [...prev, ...data];
+      });
+
+      setHasMore(data.length === LIMIT);
+    } catch (error) {
+      console.error("Ошибка загрузки:", error);
+    }
+    setLoading(false);
+  };
+
+  fetchCars();
+}, [filters, offset]); 
 
   // Фоновое автообновление каталога каждые 10 секунд
   useEffect(() => {

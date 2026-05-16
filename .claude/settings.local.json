@@ -4,7 +4,9 @@
       "WebFetch(domain:kclauto.ru)",
       "WebSearch",
       "WebFetch(domain:)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(python *)",
+      "Bash(pip install *)"
     ]
   }
 }
