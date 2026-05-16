@@ -123,11 +123,13 @@ def parse_vehicle(data: dict, car: CarData, option_map: dict) -> tuple[Optional[
         option_map[c] for c in (opts.get("standard") or []) if c in option_map
     ]
 
-    car.photos = [
-        PHOTO_BASE + p["path"]
-        for p in (data.get("photos") or [])
-        if p.get("path")
-    ]
+    # Фото: сначала экстерьер по порядку (001=перед, 002=сзади...), потом интерьер, потом опции
+    photos_raw = data.get("photos") or []
+    def photo_sort_key(p):
+        type_order = {"OUTER": 0, "INNER": 1, "OPTION": 2}
+        return (type_order.get(p.get("type"), 9), p.get("code", "999"))
+    sorted_photos = sorted(photos_raw, key=photo_sort_key)
+    car.photos = [PHOTO_BASE + p["path"] for p in sorted_photos if p.get("path")]
 
     return data.get("vehicleId"), model_ko, grade_ko
 
@@ -264,13 +266,14 @@ class EncarParser:
         choice_raw = await self._get(CHOICE_URL.format(vehicle_id=vid), headers=HEADERS_DETAIL)
         choice_items = parse_choice(choice_raw, car) if choice_raw and isinstance(choice_raw, list) else []
 
-        # 3. Перевод через MyMemory (если включён)
+        # 3. Перевод через LibreTranslate (если включён)
         if self.translate and self._translator:
-            # Модель — переводим если нет английского названия
-            if model_ko and not car.grade.strip():
-                car.model = await self._translator.translate(model_ko)
-            elif model_ko:
-                car.model = await self._translator.translate(model_ko)
+            # model — всегда переводим (корейское название поколения)
+            car.model = await self._translator.translate(model_ko)
+
+            # model_group — переводим только если осталось на корейском
+            if car.model_group and not all(ord(c) < 128 for c in car.model_group.replace(" ", "")):
+                car.model_group = await self._translator.translate(car.model_group)
 
             # Формируем title из переведённых полей
             car.title = " ".join(filter(None, [car.manufacturer, car.model, car.grade]))

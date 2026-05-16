@@ -75,62 +75,98 @@
   }
 
   // --- Вспомогательный компонент: Диапазон (От/До) ---
-  function RangeDropdown({ label, minVal, maxVal, onChange, placeholderMin = 'От', placeholderMax = 'До' }) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [localMin, setLocalMin] = useState(minVal ?? '');
-    const [localMax, setLocalMax] = useState(maxVal ?? '');
-    const dropdownRef = useRef(null);
+function RangeDropdown({ label, minVal, maxVal, onChange, placeholderMin = 'От', placeholderMax = 'До' }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [localMin, setLocalMin] = useState(minVal ?? '');
+  const [localMax, setLocalMax] = useState(maxVal ?? '');
+  const dropdownRef = useRef(null);
 
-    useEffect(() => {
-      function handleClickOutside(e) {
-        if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setIsOpen(false);
-      }
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setIsOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-    useEffect(() => {
-      setLocalMin(minVal ?? '');
-      setLocalMax(maxVal ?? '');
-    }, [minVal, maxVal]);
+  useEffect(() => {
+    setLocalMin(minVal ?? '');
+    setLocalMax(maxVal ?? '');
+  }, [minVal, maxVal]);
 
-    const applyRange = () => {
-      onChange({ min: localMin !== '' ? Number(localMin) : null, max: localMax !== '' ? Number(localMax) : null });
-      setIsOpen(false);
-    };
+  const applyRange = () => {
+    onChange({ min: localMin !== '' ? Number(localMin) : null, max: localMax !== '' ? Number(localMax) : null });
+    setIsOpen(false);
+  };
 
-    const hasValue = localMin !== '' || localMax !== '';
+  const hasValue = localMin !== '' || localMax !== '';
 
-    return (
-      <div ref={dropdownRef} className="relative">
-        <label className="text-sm font-semibold text-gray-600 mb-1 block">{label}</label>
-        <div
-          onClick={() => setIsOpen(!isOpen)}
-          className={`w-full border rounded-lg p-2.5 flex justify-between items-center transition-colors cursor-pointer bg-white ${
-            isOpen ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-300 hover:border-gray-400'
-          }`}
-        >
-          <span className={hasValue ? 'text-gray-900' : 'text-gray-400'}>
-            {hasValue ? `${localMin || '0'} — ${localMax || '∞'}` : 'Выбрать диапазон'}
-          </span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </div>
+  // Запрещаем ввод -, +, e, E
+  const preventInvalidChars = (e) => {
+    if (['-', '+', 'e', 'E'].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
 
-        {isOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3">
-            <div className="flex items-center gap-2 mb-3">
-              <input type="number" value={localMin} onChange={(e) => setLocalMin(e.target.value)} placeholder={placeholderMin} className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none" />
-              <span className="text-gray-400">—</span>
-              <input type="number" value={localMax} onChange={(e) => setLocalMax(e.target.value)} placeholder={placeholderMax} className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none" />
-            </div>
-            <button onClick={applyRange} className="w-full bg-blue-600 text-white rounded-md p-2 text-sm font-bold hover:bg-blue-700 transition-colors">Применить</button>
-          </div>
-        )}
+  // Обработчики изменений (дополнительная защита от вставки отрицательных чисел мышкой)
+  const handleMinChange = (e) => {
+    const val = e.target.value;
+    if (val === '' || Number(val) >= 0) setLocalMin(val);
+  };
+
+  const handleMaxChange = (e) => {
+    const val = e.target.value;
+    if (val === '' || Number(val) >= 0) setLocalMax(val);
+  };
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <label className="text-sm font-semibold text-gray-600 mb-1 block">{label}</label>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full border rounded-lg p-2.5 flex justify-between items-center transition-colors cursor-pointer bg-white ${
+          isOpen ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-300 hover:border-gray-400'
+        }`}
+      >
+        <span className={hasValue ? 'text-gray-900' : 'text-gray-400'}>
+          {hasValue ? `${localMin || '0'} — ${localMax || '∞'}` : 'Выбрать диапазон'}
+        </span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
       </div>
-    );
-  }
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+          <div className="flex items-center gap-2 mb-3">
+            <input 
+              type="number" 
+              min="0"
+              value={localMin} 
+              onChange={handleMinChange} 
+              onKeyDown={preventInvalidChars}
+              placeholder={placeholderMin} 
+              className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" 
+            />
+            <span className="text-gray-400">—</span>
+            <input 
+              type="number" 
+              min="0"
+              value={localMax} 
+              onChange={handleMaxChange} 
+              onKeyDown={preventInvalidChars}
+              placeholder={placeholderMax} 
+              className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" 
+            />
+          </div>
+          <button onClick={applyRange} className="w-full bg-blue-600 text-white rounded-md p-2 text-sm font-bold hover:bg-blue-700 transition-colors">
+            Применить
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
   // --- ОСНОВНОЙ КОМПОНЕНТ ФИЛЬТРОВ ---
   export default function Filters({ filters, setFilters }) {

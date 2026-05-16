@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, Calculator, Info, ShieldCheck, Truck, ExternalLink } from 'lucide-react';
-import { CarCalculator } from '../utils/calculator';
+import { BelarusCustomsCalculator } from '../utils/calculator';
 
 export default function CarDetail() {
   const { id } = useParams();
@@ -45,29 +45,30 @@ export default function CarDetail() {
   }, [id]);
 
   // Расчет всех расходов (Memoized для производительности)
+  // Расчет всех расходов
   const costs = useMemo(() => {
     if (!car || !rates) return null;
 
-    const calc = new CarCalculator();
+    const calc = new BelarusCustomsCalculator(); // Обновленное название класса
     
-    // 1. Конвертация базовой цены
     const priceByn = car.price_won * rates.KRW;
     const priceUsd = Math.round(priceByn / rates.USD);
     const priceEur = priceByn / rates.EUR;
 
-    // 2. Расчет таможни через класс (результат в EUR и BYN)
     const age = (new Date().getFullYear() - car.year) <= 3 ? 'new' : (new Date().getFullYear() - car.year) <= 5 ? 'medium' : 'old';
     
+    // АВТО-ОПРЕДЕЛЕНИЕ ЭЛЕКТРОМОБИЛЯ
+    const isElectric = car.fuel?.toLowerCase().includes('electric') || car.fuel?.toLowerCase().includes('전기');
+
     const dutyResult = calc.calculate({
-      engineType: 'fuel', // Можно добавить логику для electric, если в car.fuel есть "Electric"
+      engineType: isElectric ? 'electric' : 'fuel',
       personType: 'physical',
       priceEur: priceEur,
-      engineVolumeCm3: volume,
+      engineVolumeCm3: volume || 1600,
       ageCategory: age,
       isPrivileged: isPrivileged
     });
 
-    // Хелперы конвертации в USD (для итоговой сметы)
     const bynToUsd = (byn) => byn / rates.USD;
     const eurToUsd = (eur) => (eur * rates.EUR) / rates.USD;
 
@@ -75,7 +76,7 @@ export default function CarDetail() {
       carUsd: priceUsd,
       shippingUsd: 6600,
       dutyUsd: Math.round(eurToUsd(dutyResult.customsDuty)),
-      utilizationUsd: Math.round(bynToUsd(dutyResult.utilizationFee)), 
+      utilizationUsd: Math.round(bynToUsd(dutyResult.utilizationFee)), // Утиль в BYN -> USD
       customsFeeUsd: Math.round(eurToUsd(dutyResult.customsFee)),
       declarantUsd: Math.round(bynToUsd(300)),
       warehouseUsd: Math.round(bynToUsd(400)),
@@ -84,7 +85,7 @@ export default function CarDetail() {
 
     const total = Object.values(items).reduce((a, b) => a + b, 0);
 
-    return { ...items, total, priceEur };
+    return { ...items, total, priceEur, isElectric }; // Вернули флаг isElectric для UI
   }, [car, rates, isPrivileged, volume]);
 
   if (loading || !car) return (
