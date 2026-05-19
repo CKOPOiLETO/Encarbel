@@ -15,20 +15,42 @@ export default function BottomMarketSlider({ filters, rates }) {
     const fetchDeals = async () => {
       setLoading(true);
       try {
-        const apiParams = { ...filters, sort: 'price_asc', limit: 8, offset: 0 };
+        // 1. Вычисляем минимальный год (текущий - 5)
+        const currentYear = new Date().getFullYear();
+        const absoluteMinYear = currentYear - 5;
+
+        // 2. Логика фильтра года:
+        // Если пользователь уже поставил фильтр (например, 2024), берем его.
+        // Если фильтра нет или он меньше 2021 (для 2026 года), ставим 2021.
+        const effectiveYearMin = filters.year_min 
+          ? Math.max(Number(filters.year_min), absoluteMinYear) 
+          : absoluteMinYear;
+
+        const apiParams = { 
+          ...filters, 
+          sort: 'price_asc', 
+          year_min: effectiveYearMin, // Применяем ограничение "не старше 5 лет"
+          limit: 8, 
+          offset: 0 
+        };
+
         const { data } = await axios.get('/cars', { params: apiParams });
-        if (isMounted) setDeals(data);
+        
+        if (isMounted) {
+          setDeals(data);
+        }
       } catch (error) {
         console.error("Ошибка загрузки низа рынка", error);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      if (isMounted) setLoading(false);
     };
 
     fetchDeals();
     return () => { isMounted = false; };
   }, [filters]);
 
-  // 2. Логика кнопок прокрутки
+  // 2. Логика кнопок прокрутки (остается без изменений)
   const scroll = (direction) => {
     if (sliderRef.current) {
       const scrollAmount = direction === 'left' ? -300 : 300;

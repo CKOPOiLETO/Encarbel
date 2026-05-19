@@ -79,6 +79,7 @@ class CarData:
     transmission:     str           = ""
     color:            str           = ""
     body_type:        str           = ""  # тип кузова: Sedan, SUV, Hatchback...
+    is_lease:         bool          = False
     standard_options: list = field(default_factory=list)
     unique_options:   list = field(default_factory=list)
     photos:           list = field(default_factory=list)
@@ -116,6 +117,7 @@ def parse_vehicle(data: dict, car: CarData, option_map: dict) -> tuple[Optional[
         car.manufacture_date = None
 
     adv = data.get("advertisement") or {}
+    car.is_lease = adv.get("lease", False) or adv.get("leaseType") is not None
     car.price_won = int(adv.get("price") or 0) * 10_000
 
     spec = data.get("spec") or {}

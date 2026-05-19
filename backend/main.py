@@ -48,8 +48,8 @@ async def get_cars(
     body_type: str = None,
     year_min: int = None,
     year_max: int = None,
-    price_min: int = None, # Сюда придут рубли (BYN)
-    price_max: int = None, # Сюда придут рубли (BYN)
+    price_min: int = None,
+    price_max: int = None,
     mileage_min: int = None,
     mileage_max: int = None,
     displacement_min: int = None,
@@ -67,28 +67,28 @@ async def get_cars(
     current_time = time.time()
     if not rates_cache.get("data") or (current_time - rates_cache.get("last_updated", 0) >= 3600):
         async with httpx.AsyncClient() as client:
-            urls = {
-                "USD": "https://api.nbrb.by/exrates/rates/USD?parammode=2",
-                "EUR": "https://api.nbrb.by/exrates/rates/EUR?parammode=2",
-                "KRW": "https://api.nbrb.by/exrates/rates/KRW?parammode=2"
-            }
-            fresh = {}
-            for key, url in urls.items():
-                resp = await client.get(url)
-                if resp.status_code == 200:
+            try:
+                urls = {
+                    "USD": "https://api.nbrb.by/exrates/rates/USD?parammode=2",
+                    "EUR": "https://api.nbrb.by/exrates/rates/EUR?parammode=2",
+                    "KRW": "https://api.nbrb.by/exrates/rates/KRW?parammode=2"
+                }
+                fresh = {}
+                for key, url in urls.items():
+                    resp = await client.get(url)
                     data = resp.json()
                     fresh[key] = data["Cur_OfficialRate"] / data["Cur_Scale"]
-                else:
-                    raise Exception(f"Failed to fetch rate for {key}")
-            
-            rates_cache["data"] = fresh
-            rates_cache["last_updated"] = current_time
-            
+                rates_cache["data"] = fresh
+                rates_cache["last_updated"] = current_time
+            except:
+                if not rates_cache.get("data"):
+                    rates_cache["data"] = {"USD": 3.25, "EUR": 3.55, "KRW": 0.00245}
+
     rates = rates_cache["data"]
     krw, usd, eur = rates["KRW"], rates["USD"], rates["EUR"]
 
     # 2. SQL-ФОРМУЛА ИТОГОВОЙ ЦЕНЫ (Под Ключ в BYN)
-    # Полностью синхронизирована с BelarusCustomsCalculator
+    # Используем manufacture_date вместо year
     turnkey_sql = f"""
     (
         (COALESCE(price_won, 0) * {krw}) 
@@ -98,10 +98,7 @@ async def get_cars(
         + (
             (
                 CASE 
-                    -- ЭЛЕКТРОМОБИЛИ
                     WHEN fuel ILIKE '%Electric%' OR fuel ILIKE '%전기%' THEN 0
-                    
-                    -- ДО 3 ЛЕТ (от даты производства)
                     WHEN manufacture_date > CURRENT_DATE - INTERVAL '3 years' THEN 
                         CASE 
                             WHEN ((COALESCE(price_won,0) * {krw}) / {eur}) <= 8500 THEN GREATEST(((COALESCE(price_won,0) * {krw}) / {eur}) * 0.54, COALESCE(displacement_cc, 1600) * 2.5)
@@ -111,8 +108,6 @@ async def get_cars(
                             WHEN ((COALESCE(price_won,0) * {krw}) / {eur}) <= 169000 THEN GREATEST(((COALESCE(price_won,0) * {krw}) / {eur}) * 0.48, COALESCE(displacement_cc, 1600) * 15.0)
                             ELSE GREATEST(((COALESCE(price_won,0) * {krw}) / {eur}) * 0.48, COALESCE(displacement_cc, 1600) * 20.0)
                         END * 0.5
-                        
-                    -- ОТ 3 ДО 5 ЛЕТ
                     WHEN manufacture_date > CURRENT_DATE - INTERVAL '5 years' THEN 
                         CASE 
                             WHEN COALESCE(displacement_cc, 1600) <= 1000 THEN COALESCE(displacement_cc, 1600) * 1.5
@@ -122,8 +117,6 @@ async def get_cars(
                             WHEN COALESCE(displacement_cc, 1600) <= 3000 THEN COALESCE(displacement_cc, 1600) * 3.0
                             ELSE COALESCE(displacement_cc, 1600) * 3.6
                         END * 0.5
-                        
-                    -- СТАРШЕ 5 ЛЕТ
                     ELSE 
                         CASE 
                             WHEN COALESCE(displacement_cc, 1600) <= 1000 THEN COALESCE(displacement_cc, 1600) * 3.0
@@ -140,31 +133,54 @@ async def get_cars(
     )
     """
 
-    # 3. Применяем фильтры
+    # 3. ПРИМЕНЯЕМ ФИЛЬТРЫ
     if search:
         params.append(f"%{search.lower()}%")
-        query += f" AND (LOWER(title) LIKE ${len(params)} OR LOWER(manufacturer) LIKE ${len(params)} OR LOWER(model) LIKE ${len(params)})"
-    if manufacturer: params.append(manufacturer); query += f" AND manufacturer = ${len(params)}"
-    if model_group: params.append(model_group); query += f" AND model_group = ${len(params)}"
-    if model: params.append(model); query += f" AND model = ${len(params)}"
-    if body_type: params.append(body_type); query += f" AND body_type ILIKE ${len(params)}"
-    if year_min: params.append(year_min); query += f" AND year >= ${len(params)}"
-    if year_max: params.append(year_max); query += f" AND year <= ${len(params)}"
-    if mileage_min: params.append(mileage_min); query += f" AND mileage >= ${len(params)}"
-    if mileage_max: params.append(mileage_max); query += f" AND mileage <= ${len(params)}"
-    if fuel: params.append(fuel); query += f" AND fuel ILIKE ${len(params)}"
-    if displacement_min: params.append(displacement_min); query += f" AND displacement_cc >= ${len(params)}"
-    if displacement_max: params.append(displacement_max); query += f" AND displacement_cc <= ${len(params)}"
+        query += f" AND (LOWER(title) LIKE ${len(params)} OR LOWER(manufacturer) LIKE ${len(params)} OR LOWER(model_group) LIKE ${len(params)})"
+    
+    if manufacturer: 
+        params.append(manufacturer); query += f" AND manufacturer = ${len(params)}"
+    
+    if model_group: 
+        params.append(model_group); query += f" AND model_group = ${len(params)}"
+    
+    if model: 
+        params.append(model); query += f" AND model = ${len(params)}"
+    
+    if body_type: 
+        params.append(body_type); query += f" AND body_type = ${len(params)}"
 
-    # 4. ФИЛЬТРУЕМ ПО ТОЧНОЙ ЦЕНЕ ПОД КЛЮЧ
+    # ИСПРАВЛЕННЫЙ ФИЛЬТР ПО ГОДУ (через EXTRACT)
+    if year_min:
+        params.append(year_min)
+        query += f" AND EXTRACT(YEAR FROM manufacture_date) >= ${len(params)}"
+        
+    if year_max:
+        params.append(year_max)
+        query += f" AND EXTRACT(YEAR FROM manufacture_date) <= ${len(params)}"
+
     if price_min is not None:
-        params.append(price_min)
-        query += f" AND {turnkey_sql} >= ${len(params)}"
+        params.append(price_min); query += f" AND {turnkey_sql} >= ${len(params)}"
+    
     if price_max is not None:
-        params.append(price_max)
-        query += f" AND {turnkey_sql} <= ${len(params)}"
+        params.append(price_max); query += f" AND {turnkey_sql} <= ${len(params)}"
 
-    # 5. СОРТИРУЕМ ПО ТОЧНОЙ ЦЕНЕ ПОД КЛЮЧ
+    if mileage_min: 
+        params.append(mileage_min); query += f" AND mileage >= ${len(params)}"
+    
+    if mileage_max: 
+        params.append(mileage_max); query += f" AND mileage <= ${len(params)}"
+        
+    if fuel: 
+        params.append(fuel); query += f" AND fuel = ${len(params)}"
+        
+    if displacement_min: 
+        params.append(displacement_min); query += f" AND displacement_cc >= ${len(params)}"
+    
+    if displacement_max: 
+        params.append(displacement_max); query += f" AND displacement_cc <= ${len(params)}"
+
+    # 4. СОРТИРОВКА
     if sort == "price_asc": 
         query += f" ORDER BY {turnkey_sql} ASC"
     elif sort == "price_desc": 
@@ -172,6 +188,7 @@ async def get_cars(
     else: 
         query += " ORDER BY last_updated_at DESC"
 
+    # 5. ПАГИНАЦИЯ
     params.append(limit); query += f" LIMIT ${len(params)}"
     params.append(offset); query += f" OFFSET ${len(params)}"
 

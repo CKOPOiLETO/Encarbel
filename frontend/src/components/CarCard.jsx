@@ -5,7 +5,29 @@ import { BelarusCustomsCalculator } from '../utils/calculator';
 export default function CarCard({ car, rates }) {
   // Пока курсы не загрузились, показываем "скелет" загрузки
   if (!rates) return <div className="h-[380px] bg-gray-100 animate-pulse rounded-xl border border-gray-200" />;
-
+  if (car.is_lease) {
+    return (
+      <Link to={`/car/${car.car_id}`} className="...">
+        <div className="relative h-52 overflow-hidden bg-gray-100">
+           <img src={car.photos[0]} alt="" className="..." />
+           <div className="absolute top-2 right-2 bg-orange-500 text-white text-[10px] px-2 py-1 rounded font-bold">
+              ЛИЗИНГ
+           </div>
+        </div>
+        <div className="p-5 flex flex-col flex-grow">
+          <h3 className="font-bold text-base text-gray-800 line-clamp-2 mb-4">{car.title}</h3>
+          <div className="mt-auto">
+            <p className="text-orange-600 font-bold text-lg italic">
+              Цена по запросу
+            </p>
+            <p className="text-gray-400 text-[10px] uppercase font-bold">
+              Уточняйте у дилера
+            </p>
+          </div>
+        </div>
+      </Link>
+    );
+  }
   const calc = new BelarusCustomsCalculator();
 
   // 1. Чистая цена в Корее
@@ -68,7 +90,7 @@ export default function CarCard({ car, rates }) {
           loading="lazy"
         />
         <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded">
-          {car.year}
+        {car.manufacture_date ? new Date(car.manufacture_date).getFullYear() : car.year}
         </div>
       </div>
 
@@ -88,7 +110,7 @@ export default function CarCard({ car, rates }) {
         
         <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-gray-50 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
           <span className="flex items-center gap-1.5 bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-100">
-            <Calendar size={13} className="text-gray-400"/> {car.year}
+            <Calendar size={13} className="text-gray-400"/> {car.manufacture_date ? new Date(car.manufacture_date).getFullYear() : car.year}
           </span>
           <span className="flex items-center gap-1.5 bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-100">
             <Gauge size={13} className="text-gray-400"/> {car.mileage?.toLocaleString('ru-RU')} КМ

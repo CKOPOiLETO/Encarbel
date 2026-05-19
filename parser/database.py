@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS cars (
     transmission        TEXT,
     color               TEXT,
     body_type           TEXT,
+    is_lease            BOOLEAN         DEFAULT FALSE,
     standard_options    JSONB           DEFAULT '[]',
     unique_options      JSONB           DEFAULT '[]',
     photos              JSONB           DEFAULT '[]',
@@ -109,7 +110,7 @@ class Database:
         """
         async with self._pool.acquire() as conn:
             existing = await conn.fetchrow(
-                "SELECT car_id, price_won, mileage FROM cars WHERE car_id = $1",
+                "SELECT car_id, price_won, mileage, is_lease FROM cars WHERE car_id = $1",
                 car.car_id,
             )
 
@@ -119,39 +120,42 @@ class Database:
                     INSERT INTO cars (
                         car_id, url, title, manufacturer, model, model_group, grade,
                         manufacture_date, mileage, price_won, displacement_cc,
-                        fuel, transmission, color, body_type,
+                        fuel, transmission, color, body_type, is_lease,
                         standard_options, unique_options, photos,
                         is_active
-                    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
-                """,
+                    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+                """, # <--- ТУТ БЫЛО $19, Я ДОБАВИЛ $20
                     car.car_id, car.url, car.title, car.manufacturer,
                     car.model, car.model_group, car.grade,
                     car.manufacture_date,
                     car.mileage, car.price_won, car.displacement_cc,
-                    car.fuel, car.transmission, car.color, car.body_type,
+                    car.fuel, car.transmission, car.color, car.body_type, car.is_lease,
                     json.dumps(car.standard_options, ensure_ascii=False),
                     json.dumps(car.unique_options,   ensure_ascii=False),
                     json.dumps(car.photos,           ensure_ascii=False),
-                    True,
+                    True, # Это двадцатый аргумент для поля is_active
                 )
                 return "inserted"
 
             else:
-                # Обновляем только если изменились цена или пробег
+                # Обновляем, если изменились цена, пробег или статус лизинга
                 if (existing["price_won"] != car.price_won or
-                        existing["mileage"] != car.mileage):
+                        existing["mileage"] != car.mileage or
+                        existing["is_lease"] != car.is_lease):
                     await conn.execute("""
                         UPDATE cars SET
                             price_won       = $2,
                             mileage         = $3,
                             title           = $4,
-                            unique_options  = $5,
-                            photos          = $6,
+                            is_lease        = $5,
+                            unique_options  = $6,
+                            photos          = $7,
                             is_active       = TRUE,
                             last_updated_at = NOW()
                         WHERE car_id = $1
                     """,
                         car.car_id, car.price_won, car.mileage, car.title,
+                        car.is_lease, # Обновляем статус лизинга
                         json.dumps(car.unique_options, ensure_ascii=False),
                         json.dumps(car.photos,         ensure_ascii=False),
                     )
