@@ -21,23 +21,13 @@ log = logging.getLogger("encar")
 
 def get_database_url() -> str:
     """Берём URL из .env файла или переменной окружения."""
-    current_dir = Path(__file__).resolve().parent
-    
-    # Поднимаемся на один уровень выше — в корень проекта (Encarbel)
-    root_dir = current_dir.parent
-    env_file = root_dir / ".env"
-
-    # Если нашли файл в корне — загружаем его
+    env_file = Path(__file__).resolve().parent.parent / '.env'
     if env_file.exists():
         for line in env_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 key, _, value = line.partition("=")
                 os.environ.setdefault(key.strip(), value.strip())
-    else:
-        log.warning(f"Файл .env не найден по пути: {env_file}")
-
-    url = os.environ.get("DATABASE_URL")
 
     url = os.environ.get("DATABASE_URL")
     if not url:
@@ -60,7 +50,7 @@ CREATE TABLE IF NOT EXISTS cars (
     model               TEXT,
     model_group         TEXT,
     grade               TEXT,
-    year                INT,
+    manufacture_date    DATE,
     mileage             INT,
     price_won           BIGINT,
     displacement_cc     INT,
@@ -77,13 +67,13 @@ CREATE TABLE IF NOT EXISTS cars (
 );
 
 -- Индексы для быстрых выборок
-CREATE INDEX IF NOT EXISTS idx_cars_manufacturer  ON cars (manufacturer);
-CREATE INDEX IF NOT EXISTS idx_cars_year          ON cars (year);
-CREATE INDEX IF NOT EXISTS idx_cars_price_won     ON cars (price_won);
-CREATE INDEX IF NOT EXISTS idx_cars_mileage       ON cars (mileage);
-CREATE INDEX IF NOT EXISTS idx_cars_is_active     ON cars (is_active);
-CREATE INDEX IF NOT EXISTS idx_cars_last_updated  ON cars (last_updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_cars_first_seen    ON cars (first_seen_at DESC);
+CREATE INDEX IF NOT EXISTS idx_cars_manufacturer    ON cars (manufacturer);
+CREATE INDEX IF NOT EXISTS idx_cars_manufacture_date ON cars (manufacture_date);
+CREATE INDEX IF NOT EXISTS idx_cars_price_won       ON cars (price_won);
+CREATE INDEX IF NOT EXISTS idx_cars_mileage         ON cars (mileage);
+CREATE INDEX IF NOT EXISTS idx_cars_is_active       ON cars (is_active);
+CREATE INDEX IF NOT EXISTS idx_cars_last_updated    ON cars (last_updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_cars_first_seen      ON cars (first_seen_at DESC);
 """
 
 
@@ -128,7 +118,7 @@ class Database:
                 await conn.execute("""
                     INSERT INTO cars (
                         car_id, url, title, manufacturer, model, model_group, grade,
-                        year, mileage, price_won, displacement_cc,
+                        manufacture_date, mileage, price_won, displacement_cc,
                         fuel, transmission, color, body_type,
                         standard_options, unique_options, photos,
                         is_active
@@ -136,7 +126,8 @@ class Database:
                 """,
                     car.car_id, car.url, car.title, car.manufacturer,
                     car.model, car.model_group, car.grade,
-                    car.year, car.mileage, car.price_won, car.displacement_cc,
+                    car.manufacture_date,
+                    car.mileage, car.price_won, car.displacement_cc,
                     car.fuel, car.transmission, car.color, car.body_type,
                     json.dumps(car.standard_options, ensure_ascii=False),
                     json.dumps(car.unique_options,   ensure_ascii=False),

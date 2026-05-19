@@ -94,15 +94,15 @@ async def get_cars(
         (COALESCE(price_won, 0) * {krw}) 
         + (6600 * {usd}) 
         + 1650 
-        + (CASE WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - year) <= 3 THEN 150 ELSE 220 END) 
+        + (CASE WHEN manufacture_date > CURRENT_DATE - INTERVAL '3 years' THEN 150 ELSE 220 END) 
         + (
             (
                 CASE 
-                    -- ЭЛЕКТРОМОБИЛИ: Пошлина 0
+                    -- ЭЛЕКТРОМОБИЛИ
                     WHEN fuel ILIKE '%Electric%' OR fuel ILIKE '%전기%' THEN 0
                     
-                    -- ДВС: ДО 3 ЛЕТ
-                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - year) <= 3 THEN 
+                    -- ДО 3 ЛЕТ (от даты производства)
+                    WHEN manufacture_date > CURRENT_DATE - INTERVAL '3 years' THEN 
                         CASE 
                             WHEN ((COALESCE(price_won,0) * {krw}) / {eur}) <= 8500 THEN GREATEST(((COALESCE(price_won,0) * {krw}) / {eur}) * 0.54, COALESCE(displacement_cc, 1600) * 2.5)
                             WHEN ((COALESCE(price_won,0) * {krw}) / {eur}) <= 16700 THEN GREATEST(((COALESCE(price_won,0) * {krw}) / {eur}) * 0.48, COALESCE(displacement_cc, 1600) * 3.5)
@@ -110,10 +110,10 @@ async def get_cars(
                             WHEN ((COALESCE(price_won,0) * {krw}) / {eur}) <= 84500 THEN GREATEST(((COALESCE(price_won,0) * {krw}) / {eur}) * 0.48, COALESCE(displacement_cc, 1600) * 7.5)
                             WHEN ((COALESCE(price_won,0) * {krw}) / {eur}) <= 169000 THEN GREATEST(((COALESCE(price_won,0) * {krw}) / {eur}) * 0.48, COALESCE(displacement_cc, 1600) * 15.0)
                             ELSE GREATEST(((COALESCE(price_won,0) * {krw}) / {eur}) * 0.48, COALESCE(displacement_cc, 1600) * 20.0)
-                        END * 0.5 -- Скидка 140 указ
+                        END * 0.5
                         
-                    -- ДВС: 3 - 5 ЛЕТ
-                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - year) <= 5 THEN 
+                    -- ОТ 3 ДО 5 ЛЕТ
+                    WHEN manufacture_date > CURRENT_DATE - INTERVAL '5 years' THEN 
                         CASE 
                             WHEN COALESCE(displacement_cc, 1600) <= 1000 THEN COALESCE(displacement_cc, 1600) * 1.5
                             WHEN COALESCE(displacement_cc, 1600) <= 1500 THEN COALESCE(displacement_cc, 1600) * 1.7
@@ -121,9 +121,9 @@ async def get_cars(
                             WHEN COALESCE(displacement_cc, 1600) <= 2300 THEN COALESCE(displacement_cc, 1600) * 2.7
                             WHEN COALESCE(displacement_cc, 1600) <= 3000 THEN COALESCE(displacement_cc, 1600) * 3.0
                             ELSE COALESCE(displacement_cc, 1600) * 3.6
-                        END * 0.5 -- Скидка 140 указ
+                        END * 0.5
                         
-                    -- ДВС: СТАРШЕ 5 ЛЕТ
+                    -- СТАРШЕ 5 ЛЕТ
                     ELSE 
                         CASE 
                             WHEN COALESCE(displacement_cc, 1600) <= 1000 THEN COALESCE(displacement_cc, 1600) * 3.0
@@ -132,9 +132,9 @@ async def get_cars(
                             WHEN COALESCE(displacement_cc, 1600) <= 2300 THEN COALESCE(displacement_cc, 1600) * 4.8
                             WHEN COALESCE(displacement_cc, 1600) <= 3000 THEN COALESCE(displacement_cc, 1600) * 5.0
                             ELSE COALESCE(displacement_cc, 1600) * 5.7
-                        END * 0.5 -- Скидка 140 указ
+                        END * 0.5
                 END
-                + 40 -- Таможенный сбор
+                + 40
             ) * {eur}
         )
     )

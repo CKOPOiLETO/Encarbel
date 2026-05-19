@@ -51,7 +51,21 @@ export default function CarDetail() {
     const priceUsd = Math.round(priceByn / rates.USD);
     const priceEur = priceByn / rates.EUR;
 
-    const age = (new Date().getFullYear() - car.year) <= 3 ? 'new' : (new Date().getFullYear() - car.year) <= 5 ? 'medium' : 'old';
+    const getAgeCategory = (dateString) => {
+      if (!dateString) return 'medium'; // страховка
+      const prodDate = new Date(dateString);
+      const today = new Date();
+      
+      // Разница в годах
+      const diffTime = Math.abs(today - prodDate);
+      const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
+      
+      if (diffYears < 3) return 'new';
+      if (diffYears < 5) return 'medium';
+      return 'old';
+    };
+
+    const age = getAgeCategory(car.manufacture_date);
     const isElectric = car.fuel?.toLowerCase().includes('electric') || car.fuel?.toLowerCase().includes('전기');
     
     const dutyResult = calc.calculate({
@@ -160,7 +174,12 @@ export default function CarDetail() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-y-8 gap-x-10">
               <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Марка</span> <span className="font-bold text-lg">{car.manufacturer}</span></div>
               <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Модель</span> <span className="font-bold text-lg">{car.model}</span></div>
-              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Год выпуска</span> <span className="font-bold text-lg">{car.year}</span></div>
+              <div className="border-b pb-2">
+                <span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Дата производства</span> 
+                <span className="font-bold text-lg">
+                  {car.manufacture_date ? new Date(car.manufacture_date).toLocaleDateString('ru-RU', {month: 'long', year: 'numeric'}) : car.year}
+                </span>
+              </div>
               <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Объем двигателя</span> <span className="font-bold text-lg text-blue-600">{car.displacement_cc ? `${car.displacement_cc} см³` : '-'}</span></div>
               <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Кузов</span> <span className="font-bold text-lg">{car.body_type || '-'}</span></div>
               <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Пробег</span> <span className="font-bold text-lg">{car.mileage?.toLocaleString()} км</span></div>

@@ -16,13 +16,21 @@ export default function CarCard({ car, rates }) {
   const isElectric = car.fuel?.toLowerCase().includes('electric') || car.fuel?.toLowerCase().includes('전기');
 
   // 3. Точный расчет растаможки
+  const getAgeCategory = (dateString) => {
+    if (!dateString) return 'medium';
+    const diffYears = (new Date() - new Date(dateString)) / (1000 * 60 * 60 * 24 * 365.25);
+    if (diffYears < 3) return 'new';
+    if (diffYears < 5) return 'medium';
+    return 'old';
+  };
+
   const duty = calc.calculate({
     engineType: isElectric ? 'electric' : 'fuel',
     personType: 'physical',
     priceEur: priceEurNetto,
-    engineVolumeCm3: car.displacement_cc || 1600, // Если парсер не нашел объем, берем 1.6 как среднее
-    ageCategory: (new Date().getFullYear() - car.year) <= 5 ? 'medium' : 'old',
-    isPrivileged: true // Для превью в каталоге всегда считаем с льготой 50%
+    engineVolumeCm3: car.displacement_cc || 1600,
+    ageCategory: getAgeCategory(car.manufacture_date), // Используем точную дату
+    isPrivileged: true
   });
 
   // 4. Суммируем всё в BYN

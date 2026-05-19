@@ -21,6 +21,7 @@ import random
 from dataclasses import dataclass, field, asdict
 from typing import Optional
 from pathlib import Path
+from urllib.parse import quote
 
 from translator import Translator, translate_static, MANUFACTURER_MAP, FUEL_MAP, TRANSMISSION_MAP, COLOR_MAP, BODY_TYPE_MAP
 
@@ -69,7 +70,8 @@ class CarData:
     model:            str           = ""  # модель + поколение: "X5 (G05)", "3시리즈 (G20)"
     model_group:      str           = ""  # базовая модель без поколения: "X5", "3시리즈"
     grade:            str           = ""
-    year:             Optional[int] = None
+    year:                    Optional[int] = None  # оставляем для обратной совместимости
+    manufacture_date:        Optional[object] = None  # datetime.date объект
     mileage:          Optional[int] = None
     price_won:        Optional[int] = None
     displacement_cc:  Optional[int] = None  # объём двигателя в куб. см (1999 = 2.0L)
@@ -106,6 +108,12 @@ def parse_vehicle(data: dict, car: CarData, option_map: dict) -> tuple[Optional[
     car.grade        = grade_en or " ".join(filter(None, [grade_ko, grade_detail_ko]))
     raw_year     = cat.get("formYear")
     car.year     = int(raw_year) if raw_year else None
+    from datetime import date
+    raw_ym       = cat.get("yearMonth") or ""
+    if len(raw_ym) == 6:
+        car.manufacture_date = date(int(raw_ym[:4]), int(raw_ym[4:]), 1)
+    else:
+        car.manufacture_date = None
 
     adv = data.get("advertisement") or {}
     car.price_won = int(adv.get("price") or 0) * 10_000
@@ -342,7 +350,7 @@ class EncarParser:
             return
         fieldnames = [
             "car_id", "url", "title", "manufacturer", "model", "model_group", "grade",
-            "year", "mileage", "price_won", "displacement_cc",
+            "manufacture_date", "mileage", "price_won", "displacement_cc",
             "fuel", "transmission", "color", "body_type",
             "standard_options", "unique_options", "photos",
         ]
