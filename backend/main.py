@@ -201,6 +201,7 @@ async def get_cars(
         d['photos'] = json.loads(d['photos']) if d['photos'] else []
         d['standard_options'] = json.loads(d['standard_options']) if d['standard_options'] else []
         d['unique_options'] = json.loads(d['unique_options']) if d['unique_options'] else []
+        d['accidents'] = json.loads(d['accidents']) if d.get('accidents') else [] # <--- ДОБАВИТЬ ЭТУ СТРОКУ
         result.append(d)
         
     return result
@@ -216,6 +217,7 @@ async def get_car(car_id: int):
     d['photos'] = json.loads(d['photos']) if d['photos'] else []
     d['standard_options'] = json.loads(d['standard_options']) if d['standard_options'] else []
     d['unique_options'] = json.loads(d['unique_options']) if d['unique_options'] else []
+    d['accidents'] = json.loads(d['accidents']) if d.get('accidents') else [] 
     return d
 
 

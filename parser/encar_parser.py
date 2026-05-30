@@ -6,11 +6,7 @@ Encar.com Parser — production-ready (май 2026)
   Справочник: /search/car/list/general?inav   (1 раз при старте, маппинг code→name)
   Данные:     /v1/readside/vehicle/{id}                          (origin: fem.encar.com)
   Уник. опции:/v1/readside/vehicles/car/{vehicleId}/options/choice
-
-Перевод:
-  Марка / топливо / КПП / цвет → словари (мгновенно)
-  Название модели               → gradeEnglishName из API
-  Опции                         → MyMemory API (бесплатно, кэш в translation_cache.json)
+  Страховка:  /v1/readside/record/vehicle/{id}/open?vehicleNo={no}
 """
 
 import asyncio
@@ -19,6 +15,7 @@ import json
 import logging
 import random
 from dataclasses import dataclass, field, asdict
+from datetime import date
 from typing import Optional
 from pathlib import Path
 from urllib.parse import quote
@@ -35,6 +32,7 @@ log = logging.getLogger("encar")
 SEARCH_URL    = "https://api.encar.com/search/car/list/general"
 VEHICLE_URL   = "https://api.encar.com/v1/readside/vehicle/{id}"
 CHOICE_URL    = "https://api.encar.com/v1/readside/vehicles/car/{vehicle_id}/options/choice"
+RECORD_URL    = "https://api.encar.com/v1/readside/record/vehicle/{id}/open?vehicleNo={vehicle_no}"
 DETAIL_PAGE   = "https://fem.encar.com/cars/detail/{id}"
 PHOTO_BASE    = "https://ci.encar.com"
 
@@ -64,98 +62,139 @@ HEADERS_DETAIL = {
 @dataclass
 class CarData:
     car_id:           int
-    url:              str           = ""
-    title:            str           = ""
-    manufacturer:     str           = ""
-    model:            str           = ""  # модель + поколение: "X5 (G05)", "3시리즈 (G20)"
-    model_group:      str           = ""  # базовая модель без поколения: "X5", "3시리즈"
-    grade:            str           = ""
-    year:                    Optional[int] = None  # оставляем для обратной совместимости
-    manufacture_date:        Optional[object] = None  # datetime.date объект
-    mileage:          Optional[int] = None
-    price_won:        Optional[int] = None
-    displacement_cc:  Optional[int] = None  # объём двигателя в куб. см (1999 = 2.0L)
-    fuel:             str           = ""
-    transmission:     str           = ""
-    color:            str           = ""
-    body_type:        str           = ""  # тип кузова: Sedan, SUV, Hatchback...
-    is_lease:         bool          = False
+    url:              str            = ""
+    title:            str            = ""
+    manufacturer:     str            = ""
+    model:            str            = ""   # модель + поколение: "X5 (G05)"
+    model_group:      str            = ""   # базовая модель: "X5"
+    grade:            str            = ""
+    year:             Optional[int]  = None
+    manufacture_date: Optional[date] = None
+    mileage:          Optional[int]  = None
+    price_won:        Optional[int]  = None
+    displacement_cc:  Optional[int]  = None
+    fuel:             str            = ""
+    transmission:     str            = ""
+    color:            str            = ""
+    body_type:        str            = ""
+    is_lease:         bool           = False
+    # ── Страховая история ─────────────────────────────────────────────────────
+    owner_changes:        Optional[int] = None  # количество владельцев
+    my_accident_cnt:      Optional[int] = None  # аварий по своей вине
+    other_accident_cnt:   Optional[int] = None  # аварий по чужой вине
+    my_accident_cost:     Optional[int] = None  # выплаты по своей вине (вон)
+    other_accident_cost:  Optional[int] = None  # выплаты по чужой вине (вон)
+    total_loss_cnt:       Optional[int] = None  # полная гибель
+    flood_cnt:            Optional[int] = None  # затопление
+    accidents:            list = field(default_factory=list)  # список аварий
+    # ── Опции и фото ──────────────────────────────────────────────────────────
     standard_options: list = field(default_factory=list)
     unique_options:   list = field(default_factory=list)
     photos:           list = field(default_factory=list)
 
     def to_dict(self):
-        return asdict(self)
+        d = asdict(self)
+        # date → строка для JSON/CSV
+        if d.get("manufacture_date"):
+            d["manufacture_date"] = str(d["manufacture_date"])
+        return d
 
+
+# ── Парсинг ────────────────────────────────────────────────────────────────────
 
 def parse_vehicle(data: dict, car: CarData, option_map: dict) -> tuple[Optional[int], str, str]:
-    """
-    Заполняет поля CarData.
-    Возвращает (vehicleId, grade_en, model_en) для дальнейшего перевода.
-    """
     cat = data.get("category") or {}
 
-    manufacturer_ko    = cat.get("manufacturerName")      or ""
-    model_ko           = cat.get("modelName")              or cat.get("modelGroupName") or ""
-    model_group_en     = cat.get("modelGroupEnglishName")  or ""
-    model_group_ko     = cat.get("modelGroupName")         or ""
-    grade_ko           = cat.get("gradeName")              or ""
-    grade_detail_ko    = cat.get("gradeDetailName")        or ""
-    grade_en           = cat.get("gradeEnglishName")       or ""
+    manufacturer_ko = cat.get("manufacturerName")     or ""
+    model_ko        = cat.get("modelName")             or cat.get("modelGroupName") or ""
+    model_group_en  = cat.get("modelGroupEnglishName") or ""
+    model_group_ko  = cat.get("modelGroupName")        or ""
+    grade_ko        = cat.get("gradeName")             or ""
+    grade_detail_ko = cat.get("gradeDetailName")       or ""
+    grade_en        = cat.get("gradeEnglishName")      or ""
 
     car.manufacturer = translate_static(manufacturer_ko, MANUFACTURER_MAP)
-    car.model        = model_ko        # переведём через LibreTranslate
-    car.model_group  = model_group_en or model_group_ko  # EN из API, иначе KO → переведём
+    car.model        = model_ko
+    car.model_group  = model_group_en or model_group_ko
     car.grade        = grade_en or " ".join(filter(None, [grade_ko, grade_detail_ko]))
-    raw_year     = cat.get("formYear")
-    car.year     = int(raw_year) if raw_year else None
-    from datetime import date
-    raw_ym       = cat.get("yearMonth") or ""
-    if len(raw_ym) == 6:
-        car.manufacture_date = date(int(raw_ym[:4]), int(raw_ym[4:]), 1)
-    else:
-        car.manufacture_date = None
+
+    raw_year = cat.get("formYear")
+    car.year = int(raw_year) if raw_year else None
+
+    raw_ym = cat.get("yearMonth") or ""
+    car.manufacture_date = date(int(raw_ym[:4]), int(raw_ym[4:]), 1) if len(raw_ym) == 6 else None
 
     adv = data.get("advertisement") or {}
-    car.is_lease = adv.get("lease", False) or adv.get("leaseType") is not None
+    ad_type      = adv.get("advertisementType") or "NORMAL"
+    car.is_lease  = ad_type != "NORMAL"
     car.price_won = int(adv.get("price") or 0) * 10_000
 
     spec = data.get("spec") or {}
     car.mileage         = spec.get("mileage")
     car.displacement_cc = spec.get("displacement") or None
-    car.fuel            = translate_static(spec.get("fuelName") or "", FUEL_MAP)
+    car.fuel            = translate_static(spec.get("fuelName")         or "", FUEL_MAP)
     car.transmission    = translate_static(spec.get("transmissionName") or "", TRANSMISSION_MAP)
-    car.color           = translate_static(spec.get("colorName") or "", COLOR_MAP)
-    car.body_type       = translate_static(spec.get("bodyName") or "", BODY_TYPE_MAP)
+    car.color           = translate_static(spec.get("colorName")        or "", COLOR_MAP)
+    car.body_type       = translate_static(spec.get("bodyName")         or "", BODY_TYPE_MAP)
 
     opts = data.get("options") or {}
     car.standard_options = [
         option_map[c] for c in (opts.get("standard") or []) if c in option_map
     ]
 
-    # Фото: сначала экстерьер по порядку (001=перед, 002=сзади...), потом интерьер, потом опции
     photos_raw = data.get("photos") or []
     def photo_sort_key(p):
         type_order = {"OUTER": 0, "INNER": 1, "OPTION": 2}
         return (type_order.get(p.get("type"), 9), p.get("code", "999"))
-    sorted_photos = sorted(photos_raw, key=photo_sort_key)
-    car.photos = [PHOTO_BASE + p["path"] for p in sorted_photos if p.get("path")]
+    car.photos = [
+        PHOTO_BASE + p["path"]
+        for p in sorted(photos_raw, key=photo_sort_key)
+        if p.get("path")
+    ]
 
-    return data.get("vehicleId"), model_ko, grade_ko
+    return data.get("vehicleId"), model_ko, model_group_ko
 
 
-def parse_choice(items: list, car: CarData):
+def parse_choice(items: list) -> list:
     result = []
     for item in items:
         name  = item.get("optionName") or ""
         price = item.get("price")
         if name:
-            if price:
-                result.append({"name_ko": name, "price_man_won": int(price)})
-            else:
-                result.append({"name_ko": name, "price_man_won": None})
-    return result  # вернём сырые данные, переведём позже
+            result.append({
+                "name_ko":      name,
+                "price_man_won": int(price) if price else None,
+            })
+    return result
 
+
+def parse_insurance(data: dict, car: CarData):
+    """Страховая история из /record/vehicle/{id}/open"""
+    if not data or not data.get("openData"):
+        return
+
+    car.owner_changes       = data.get("ownerChangeCnt")
+    car.my_accident_cnt     = data.get("myAccidentCnt")
+    car.other_accident_cnt  = data.get("otherAccidentCnt")
+    car.my_accident_cost    = data.get("myAccidentCost")
+    car.other_accident_cost = data.get("otherAccidentCost")
+    car.total_loss_cnt      = data.get("totalLossCnt")
+    car.flood_cnt           = (data.get("floodTotalLossCnt") or 0) + (data.get("floodPartLossCnt") or 0)
+
+    car.accidents = [
+        {
+            "date":     a.get("date"),
+            "cost":     a.get("insuranceBenefit"),
+            "parts":    a.get("partCost"),
+            "labor":    a.get("laborCost"),
+            "paint":    a.get("paintingCost"),
+            "at_fault": a.get("type") == "1",  # type=1 своя вина, type=2 чужая
+        }
+        for a in (data.get("accidents") or [])
+    ]
+
+
+# ── Основной класс ─────────────────────────────────────────────────────────────
 
 class EncarParser:
     def __init__(
@@ -269,30 +308,34 @@ class EncarParser:
         vehicle = await self._get(VEHICLE_URL.format(id=car_id), headers=HEADERS_DETAIL)
         if not vehicle:
             return None
-        vehicle_id, model_ko, grade_ko = parse_vehicle(vehicle, car, self._option_map)
+        vehicle_id, model_ko, model_group_ko = parse_vehicle(vehicle, car, self._option_map)
 
         # 2. Уникальные опции с ценами
-        vid = vehicle_id or car_id
+        vid        = vehicle_id or car_id
         choice_raw = await self._get(CHOICE_URL.format(vehicle_id=vid), headers=HEADERS_DETAIL)
-        choice_items = parse_choice(choice_raw, car) if choice_raw and isinstance(choice_raw, list) else []
+        choice_items = parse_choice(choice_raw) if choice_raw and isinstance(choice_raw, list) else []
 
-        # 3. Перевод через LibreTranslate (если включён)
+        # 3. Страховая история (vehicleNo берём из ответа vehicle)
+        vehicle_no = vehicle.get("vehicleNo") or ""
+        if vehicle_no:
+            insurance = await self._get(
+                RECORD_URL.format(id=car_id, vehicle_no=quote(vehicle_no)),
+                headers=HEADERS_DETAIL,
+            )
+            parse_insurance(insurance, car)
+
+        # 4. Перевод
         if self.translate and self._translator:
-            # model — всегда переводим (корейское название поколения)
             car.model = await self._translator.translate(model_ko)
 
-            # model_group — переводим только если осталось на корейском
             if car.model_group and not all(ord(c) < 128 for c in car.model_group.replace(" ", "")):
                 car.model_group = await self._translator.translate(car.model_group)
 
-            # Формируем title из переведённых полей
             car.title = " ".join(filter(None, [car.manufacturer, car.model, car.grade]))
 
-            # Стандартные опции — переводим батчем
             if car.standard_options:
                 car.standard_options = await self._translator.translate_list(car.standard_options)
 
-            # Уникальные опции — переводим название и добавляем цену
             unique_translated = []
             for item in choice_items:
                 name_en = await self._translator.translate(item["name_ko"])
@@ -303,7 +346,6 @@ class EncarParser:
                     unique_translated.append(name_en)
             car.unique_options = unique_translated
         else:
-            # Без перевода — корейский оригинал
             car.title = " ".join(filter(None, [car.manufacturer, car.model, car.grade]))
             car.unique_options = [
                 f"{i['name_ko']} — {i['price_man_won']}만원" if i['price_man_won'] else i['name_ko']
@@ -353,11 +395,13 @@ class EncarParser:
         fieldnames = [
             "car_id", "url", "title", "manufacturer", "model", "model_group", "grade",
             "manufacture_date", "mileage", "price_won", "displacement_cc",
-            "fuel", "transmission", "color", "body_type",
+            "fuel", "transmission", "color", "body_type", "is_lease",
+            "owner_changes", "my_accident_cnt", "other_accident_cnt",
+            "my_accident_cost", "other_accident_cost", "total_loss_cnt", "flood_cnt",
             "standard_options", "unique_options", "photos",
         ]
         with open(path, "w", newline="", encoding="utf-8-sig") as f:
-            w = csv.DictWriter(f, fieldnames=fieldnames)
+            w = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
             w.writeheader()
             for car in cars:
                 row = car.to_dict()
@@ -388,12 +432,13 @@ async def main(total: int = 100, output_dir: str = "output", translate: bool = T
             s = cars[0]
             print(f"\n─── Пример ───")
             print(f"Авто:          {s.title}")
-            print(f"Марка:         {s.manufacturer}")
-            print(f"Год:           {s.year}")
+            print(f"Производство:  {s.manufacture_date}")
             print(f"Пробег:        {s.mileage:,} км" if s.mileage else "Пробег: —")
             print(f"Цена:          {s.price_won:,} вон" if s.price_won else "Цена: —")
-            print(f"Топливо:       {s.fuel}")
-            print(f"Уник. опции:   {', '.join(s.unique_options) or '—'}")
+            print(f"Лизинг:        {'да' if s.is_lease else 'нет'}")
+            print(f"Владельцев:    {s.owner_changes}")
+            print(f"Аварий (своя): {s.my_accident_cnt}")
+            print(f"Выплаты:       {s.my_accident_cost:,} вон" if s.my_accident_cost else "Выплаты: —")
             print(f"Фото:          {len(s.photos)} шт")
         else:
             log.warning("Данные не получены.")
