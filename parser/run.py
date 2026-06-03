@@ -4,7 +4,7 @@ import logging
 from encar_parser import EncarParser
 from database import Database
 
-# 1. Инициализируем логгер, чтобы ошибка "log is not defined" исчезла
+# Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -15,48 +15,84 @@ log = logging.getLogger("encar")
 def parse_args():
     p = argparse.ArgumentParser(description="Массовый импорт авто Encar в БД")
     p.add_argument("--total",     type=int,   default=100,   help="Сколько авто собрать")
-    p.add_argument("--workers",   type=int,   default=5,     help="Параллельных запросов (рекомендуется 5)")
+    p.add_argument("--workers",   type=int,   default=5,     help="Параллельных запросов")
     p.add_argument("--delay-min", type=float, default=0.5,   help="Мин. задержка (с)")
     p.add_argument("--delay-max", type=float, default=1.5,   help="Макс. задержка (с)")
-    p.add_argument("--output",    type=str,   default="output", help="Папка (не используется для БД)")
-    p.add_argument("--verbose",   action="store_true",        help="Подробный лог")
+    p.add_argument("--batch",     type=int,   default=200,   help="Размер порции для сохранения в БД")
+    p.add_argument("--verbose",   action="store_true",       help="Подробный лог")
     return p.parse_args()
 
 async def run(args):
     if args.verbose:
         log.setLevel(logging.DEBUG)
 
-    # 2. Подключаемся к БД
     db = Database()
     await db.connect()
 
-    # 3. Инициализируем парсер
     parser = EncarParser(
         concurrency=args.workers,
         delay_min=args.delay_min,
         delay_max=args.delay_max,
-        output_dir=args.output,
+        output_dir="output",
     )
     
     try:
+        # 0. ОБЯЗАТЕЛЬНО загружаем справочник опций и проверяем переводчик
+        parser._option_map = await parser.load_option_map()
+        if parser.translate and parser._translator:
+            await parser._translator.check_available()
+
         log.info(f"Запуск сбора {args.total} автомобилей...")
         
-        # Собираем данные из API Encar
-        cars = await parser.fetch_all(total=args.total)
+        # 1. Сверяемся с БД
+        known_ids = await db.get_known_ids()
+        log.info(f"В базе уже есть {len(known_ids)} машин.")
         
-        if cars:
-            # ЗАПИСЫВАЕМ СРАЗУ В БАЗУ ДАННЫХ
-            log.info(f"Записываем {len(cars)} авто в базу данных...")
-            stats = await db.upsert_many(cars)
+        all_ids_on_site = await parser.fetch_ids(total=args.total)
+        
+        # Оставляем только те ID, которых нет в БД
+        new_ids = [cid for cid in all_ids_on_site if cid not in known_ids]
+        
+        if not new_ids:
+            log.info("Все эти машины уже есть в базе. Новых объявлений не найдено.")
+            return
+
+        total_new = len(new_ids)
+        log.info(f"Найдено {total_new} абсолютно НОВЫХ машин. Начинаем скачивание...")
+        
+        sem = asyncio.Semaphore(parser.concurrency)
+        total_stats = {"inserted": 0, "updated": 0, "unchanged": 0}
+        
+        # 2. СКАЧИВАЕМ И СОХРАНЯЕМ БАТЧАМИ (ПОРЦИЯМИ)
+        # Идем по списку ID шагами по args.batch (по умолчанию 200)
+        for i in range(0, total_new, args.batch):
+            chunk_ids = new_ids[i : i + args.batch]
+            cars_chunk = []
             
-            print(f"\n" + "="*30)
-            print(f"✅ ЗАГРУЗКА ЗАВЕРШЕНА")
-            print(f"Добавлено новых: {stats['inserted']}")
-            print(f"Обновлено:      {stats['updated']}")
-            print(f"Без изменений:  {stats['unchanged']}")
-            print("="*30)
-        else:
-            log.warning("⚠️ Данные не получены. Проверьте соединение или наличие LibreTranslate.")
+            async def fetch_one(car_id: int):
+                async with sem:
+                    car = await parser.fetch_car(car_id)
+                    if car:
+                        cars_chunk.append(car)
+
+            # Ждем пока скачается 200 машин
+            await asyncio.gather(*[fetch_one(cid) for cid in chunk_ids])
+            
+            # СРАЗУ СОХРАНЯЕМ ИХ В БАЗУ!
+            if cars_chunk:
+                stats = await db.upsert_many(cars_chunk)
+                total_stats["inserted"] += stats["inserted"]
+                total_stats["updated"]  += stats["updated"]
+                total_stats["unchanged"]+= stats["unchanged"]
+                
+            log.info(f"  Прогресс: сохранено в БД {min(i + args.batch, total_new)} / {total_new}")
+            
+        print(f"\n" + "="*30)
+        print(f"✅ ЗАГРУЗКА ЗАВЕРШЕНА")
+        print(f"Добавлено новых: {total_stats['inserted']}")
+        print(f"Обновлено:      {total_stats['updated']}")
+        print(f"Без изменений:  {total_stats['unchanged']}")
+        print("="*30)
             
     except Exception as e:
         log.error(f"Критическая ошибка в процессе run: {e}", exc_info=True)

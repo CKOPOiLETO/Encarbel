@@ -2,7 +2,6 @@ export class BelarusCustomsCalculator {
   CUSTOMS_FEE = 40;
 
   calculate(car) {
-      // car: { priceEur, ageCategory, engineVolumeCm3, engineType, isPrivileged, personType }
       const baseDuty = car.engineType === 'electric'
           ? (car.personType === 'physical' ? 0 : car.priceEur * 0.15)
           : (car.personType === 'physical'
@@ -14,14 +13,14 @@ export class BelarusCustomsCalculator {
           : baseDuty;
 
       const utilFee = car.personType === 'physical'
-          ? (car.ageCategory === 'new' ? 150 : 220)
+          ? (car.ageCategory === 'new' ? 624.92 : 1282.02)
           : 1200;
 
       return {
           customsDuty: Math.round(finalDuty),
-          utilizationFee: utilFee, // Внимание: утильсбор по закону в BYN, но в этом классе он считается как число (добавим конвертацию снаружи)
+          utilizationFee: utilFee,
           customsFee: this.CUSTOMS_FEE,
-          totalEur: Math.round(finalDuty + this.CUSTOMS_FEE) // Утиль добавим в BYN на клиенте
+          totalEur: Math.round(finalDuty + this.CUSTOMS_FEE)
       };
   }
 

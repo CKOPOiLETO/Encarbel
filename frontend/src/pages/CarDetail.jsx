@@ -15,6 +15,11 @@ export default function CarDetail() {
   const [isPrivileged, setIsPrivileged] = useState(true);
   const [volume, setVolume] = useState(1600);
 
+  // БЕЗОПАСНАЯ проверка на электромобиль
+  const isElectric = (car && car.fuel) 
+    ? (car.fuel.toLowerCase().includes('electric') || car.fuel.includes('전기')) 
+    : false;
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -48,7 +53,6 @@ export default function CarDetail() {
     const priceEur = priceByn / rates.EUR;
 
     const age = (new Date().getFullYear() - (car.manufacture_date ? new Date(car.manufacture_date).getFullYear() : car.year)) <= 5 ? 'medium' : 'old';
-    const isElectric = car.fuel?.toLowerCase().includes('electric') || car.fuel?.toLowerCase().includes('전기');
     
     const dutyResult = calc.calculate({
       engineType: isElectric ? 'electric' : 'fuel',
@@ -76,7 +80,7 @@ export default function CarDetail() {
     const total = Object.values(items).reduce((a, b) => a + b, 0);
 
     return { ...items, total, priceEur };
-  }, [car, rates, isPrivileged, volume]);
+  }, [car, rates, isPrivileged, volume, isElectric]);
 
   const renderOption = (opt, index) => {
     const match = opt.match(/\(([\d,]+)₩\)/);
@@ -105,7 +109,6 @@ export default function CarDetail() {
     );
   };
 
-  // Хелпер для перевода страховых выплат в доллары
   const getInsuranceUsd = (wonCost) => {
     if (!wonCost || !rates) return 0;
     const byn = wonCost * rates.KRW;
@@ -155,10 +158,15 @@ export default function CarDetail() {
               <div className="border-b pb-2">
                 <span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Дата производства</span> 
                 <span className="font-bold text-lg">
-                  {car.manufacture_date ? new Date(car.manufacture_date).toLocaleDateString('ru-RU', {month: 'long', year: 'numeric'}) : car.year}
+                  {car.manufacture_date ? new Date(car.manufacture_date).toLocaleDateString('ru-RU', {month: 'numeric', year: 'numeric'}) : car.year}
                 </span>
               </div>
-              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Объем двигателя</span> <span className="font-bold text-lg text-blue-600">{car.displacement_cc ? `${car.displacement_cc} см³` : '-'}</span></div>
+              <div className="border-b pb-2">
+                <span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Объем двигателя</span> 
+                <span className={`font-bold text-lg ${isElectric ? 'text-green-600' : 'text-blue-600'}`}>
+                  {isElectric ? 'Электро' : (car.displacement_cc ? `${car.displacement_cc} см³` : '-')}
+                </span>
+              </div>
               <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Кузов</span> <span className="font-bold text-lg">{car.body_type || '-'}</span></div>
               <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Пробег</span> <span className="font-bold text-lg">{car.mileage?.toLocaleString()} км</span></div>
               <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Топливо</span> <span className="font-bold text-lg">{car.fuel}</span></div>
@@ -167,23 +175,18 @@ export default function CarDetail() {
             </div>
           </div>
 
-          {/* НОВЫЙ БЛОК: СТРАХОВАЯ ИСТОРИЯ */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
             <h2 className="text-2xl font-extrabold mb-6 flex items-center gap-2 text-gray-800">
               <FileText className="text-blue-600" size={24} /> Страховая история (Encar)
             </h2>
-
             {car.owner_changes !== null && car.owner_changes !== undefined ? (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Смена владельцев */}
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between">
                   <div className="flex items-center gap-2 text-gray-500 mb-2">
                     <Users size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Владельцы</span>
                   </div>
-                  <div className="text-2xl font-black text-gray-800">{car.owner_changes} <span className="text-sm font-medium text-gray-500">раз(а)</span></div>
+                  <div className="text-2xl font-black text-gray-800">{car.owner_changes} <span className="text-sm font-medium text-gray-500"></span></div>
                 </div>
-
-                {/* Полная гибель / Затопление */}
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between">
                   <div className="flex items-center gap-2 text-gray-500 mb-2">
                     <Droplets size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Тотал / Потоп</span>
@@ -192,8 +195,6 @@ export default function CarDetail() {
                     {car.total_loss_cnt || 0} <span className="text-sm text-gray-300 mx-1">/</span> {car.flood_cnt || 0}
                   </div>
                 </div>
-
-                {/* Аварии (Своя вина) */}
                 <div className={`p-4 rounded-xl border flex flex-col justify-between ${car.my_accident_cnt > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
                   <div className={`flex items-center gap-2 mb-2 ${car.my_accident_cnt > 0 ? 'text-red-500' : 'text-gray-500'}`}>
                     <AlertTriangle size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Своя вина</span>
@@ -207,8 +208,6 @@ export default function CarDetail() {
                     </div>
                   </div>
                 </div>
-
-                {/* Аварии (Чужая вина) */}
                 <div className={`p-4 rounded-xl border flex flex-col justify-between ${car.other_accident_cnt > 0 ? 'bg-orange-50 border-orange-100' : 'bg-gray-50 border-gray-100'}`}>
                   <div className={`flex items-center gap-2 mb-2 ${car.other_accident_cnt > 0 ? 'text-orange-500' : 'text-gray-500'}`}>
                     <Wrench size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Чужая вина</span>
@@ -248,7 +247,7 @@ export default function CarDetail() {
           </div>
         </div>
 
-        {/* ПРАВАЯ КОЛОНКА (Калькулятор / Лизинг) */}
+        {/* ПРАВАЯ КОЛОНКА (Калькулятор) */}
         <div className="lg:col-span-4">
           {car.is_lease ? (
             <div className="bg-white rounded-2xl shadow-xl border-2 border-orange-100 p-8 sticky top-24 text-center">
@@ -288,15 +287,22 @@ export default function CarDetail() {
                     className="w-6 h-6 accent-blue-600 cursor-pointer"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Рабочий объем (см³)</label>
-                  <input 
-                    type="number" 
-                    value={volume} 
-                    onChange={e => setVolume(Number(e.target.value))}
-                    className="w-full bg-white border border-gray-200 rounded-xl p-3 text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
-                  />
-                </div>
+                
+                {!isElectric ? (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Рабочий объем (см³)</label>
+                    <input 
+                      type="number" 
+                      value={volume} 
+                      onChange={e => setVolume(Number(e.target.value))}
+                      className="w-full bg-white border border-gray-200 rounded-xl p-3 text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                    />
+                  </div>
+                ) : (
+                  <div className="mt-2 bg-green-100 text-green-700 p-3 rounded-xl text-center text-xs font-bold uppercase tracking-wider">
+                    Пошлина 0% (Электромобиль)
+                  </div>
+                )}
               </div>
 
               {costs && (
@@ -314,26 +320,36 @@ export default function CarDetail() {
                   </div>
 
                   <div className="pt-4 border-t border-gray-100">
-                    <span className="text-[10px] font-black text-blue-600/50 uppercase tracking-widest block mb-4">3. Таможня и сборы (РБ)</span>
-                    <div className="space-y-3 ml-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Пошлина + Тамож. сбор</span>
-                        <span className="font-bold text-gray-800">${(costs.dutyUsd + costs.customsFeeUsd).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Утильсбор</span>
-                        <span className="font-bold text-gray-800">${costs.utilizationUsd}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Услуги декларанта</span>
-                        <span className="font-bold text-gray-800">${costs.declarantUsd}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">СВХ и ЭПТС</span>
-                        <span className="font-bold text-gray-800">${costs.warehouseUsd}</span>
-                      </div>
+                  {/* Заголовок блока с общей суммой */}
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-[10px] font-black text-blue-600/50 uppercase tracking-widest block">
+                      3. Таможня и сборы (РБ)
+                    </span>
+                    <span className="font-bold text-lg">
+                      ${(costs.dutyUsd + costs.customsFeeUsd + costs.utilizationUsd + costs.declarantUsd + costs.warehouseUsd).toLocaleString('ru-RU')}
+                    </span>
+                  </div>
+                  
+                  {/* Раскладка блока */}
+                  <div className="space-y-3 ml-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Таможенная пошлина</span>
+                      <span className="font-bold text-gray-800">${(costs.dutyUsd + costs.customsFeeUsd).toLocaleString('ru-RU')}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Утильсбор</span>
+                      <span className="font-bold text-gray-800">${costs.utilizationUsd.toLocaleString('ru-RU')}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Услуги декларанта</span>
+                      <span className="font-bold text-gray-800">≈ ${costs.declarantUsd.toLocaleString('ru-RU')}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">СВХ и ЭПТС</span>
+                      <span className="font-bold text-gray-800">≈ ${costs.warehouseUsd.toLocaleString('ru-RU')}</span>
                     </div>
                   </div>
+                </div>
 
                   <div className="flex justify-between items-center pt-4 border-t border-gray-100">
                     <span className="text-gray-500 text-sm font-medium flex items-center gap-2">

@@ -58,6 +58,7 @@ async def get_cars(
     search: str = None,
     sort: str = "newest",
     limit: int = 30,
+    hide_lease: bool = False,
     offset: int = 0
 ):
     query = "SELECT * FROM cars WHERE is_active = TRUE"
@@ -94,7 +95,7 @@ async def get_cars(
         (COALESCE(price_won, 0) * {krw}) 
         + (6600 * {usd}) 
         + 1650 
-        + (CASE WHEN manufacture_date > CURRENT_DATE - INTERVAL '3 years' THEN 150 ELSE 220 END) 
+        + (CASE WHEN manufacture_date > CURRENT_DATE - INTERVAL '3 years' THEN 624.92 ELSE 1282.02 END) 
         + (
             (
                 CASE 
@@ -160,10 +161,11 @@ async def get_cars(
         query += f" AND EXTRACT(YEAR FROM manufacture_date) <= ${len(params)}"
 
     if price_min is not None:
-        params.append(price_min); query += f" AND {turnkey_sql} >= ${len(params)}"
-    
+        params.append(price_min * usd) # Умножаем доллары на курс
+        query += f" AND {turnkey_sql} >= ${len(params)}"
     if price_max is not None:
-        params.append(price_max); query += f" AND {turnkey_sql} <= ${len(params)}"
+        params.append(price_max * usd) # Умножаем доллары на курс
+        query += f" AND {turnkey_sql} <= ${len(params)}"
 
     if mileage_min: 
         params.append(mileage_min); query += f" AND mileage >= ${len(params)}"
@@ -179,6 +181,10 @@ async def get_cars(
     
     if displacement_max: 
         params.append(displacement_max); query += f" AND displacement_cc <= ${len(params)}"
+        
+    if hide_lease:
+        query += " AND is_lease = FALSE" 
+        
 
     # 4. СОРТИРОВКА
     if sort == "price_asc": 
@@ -262,34 +268,59 @@ async def get_rates():
 @app.get("/api/filters")
 async def get_filter_options():
     async with pool.acquire() as conn:
+        # Используем твой метод: группируем и находим мин/макс год
         rows = await conn.fetch("""
-            SELECT DISTINCT manufacturer, model_group, model
+            SELECT manufacturer, model_group, model,
+                   MIN(EXTRACT(YEAR FROM manufacture_date)) as year_from,
+                   MAX(EXTRACT(YEAR FROM manufacture_date)) as year_to
             FROM cars
-            WHERE is_active = TRUE
+            WHERE is_active = TRUE 
               AND manufacturer IS NOT NULL AND manufacturer != ''
               AND model_group IS NOT NULL AND model_group != ''
               AND model IS NOT NULL AND model != ''
+            GROUP BY manufacturer, model_group, model
         """)
         fuel_rows = await conn.fetch("SELECT DISTINCT fuel FROM cars WHERE is_active = TRUE AND fuel != ''")
         body_rows = await conn.fetch("SELECT DISTINCT body_type FROM cars WHERE is_active = TRUE AND body_type != ''")
 
-    models_map = {}
+    hierarchy = {}
     for r in rows:
-        mfr = r['manufacturer'].strip()
-        grp = r['model_group'].strip()
-        model = r['model'].strip()
+        m = r['manufacturer'].strip()
+        mg = r['model_group'].strip()
+        md = r['model'].strip()
         
-        if mfr not in models_map: models_map[mfr] = {}
-        if grp not in models_map[mfr]: models_map[mfr][grp] = []
-        if model not in models_map[mfr][grp]: models_map[mfr][grp].append(model)
+        # Получаем годы из SQL-запроса
+        yf = int(r['year_from']) if r['year_from'] else None
+        yt = int(r['year_to']) if r['year_to'] else None
+        
+        # Формируем красивый текст для выпадающего списка
+        if yf and yt:
+            if yf == yt:
+                label = f"{md} ({yf})"
+            else:
+                label = f"{md} ({yf} - {yt})"
+        else:
+            label = md
 
-    for mfr in models_map:
-        for grp in models_map[mfr]:
-            models_map[mfr][grp].sort()
+        if m not in hierarchy:
+            hierarchy[m] = {}
+        if mg not in hierarchy[m]:
+            hierarchy[m][mg] = []
+            
+        # Сохраняем как объект: value улетит на бэкенд для поиска, а label увидит клиент
+        hierarchy[m][mg].append({
+            "value": md,
+            "label": label
+        })
+
+    # Сортируем списки моделей по алфавиту/годам
+    for m in hierarchy:
+        for mg in hierarchy[m]:
+            hierarchy[m][mg].sort(key=lambda x: x["label"])
 
     return {
-        "manufacturers": sorted(list(models_map.keys())),
-        "hierarchy": models_map,
+        "manufacturers": sorted(list(hierarchy.keys())),
+        "hierarchy": hierarchy,
         "fuels": sorted([f['fuel'] for f in fuel_rows]),
         "body_types": sorted([b['body_type'] for b in body_rows])
     }

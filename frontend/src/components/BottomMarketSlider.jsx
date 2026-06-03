@@ -6,30 +6,42 @@ import { Flame, ChevronLeft, ChevronRight } from 'lucide-react';
 export default function BottomMarketSlider({ filters, rates }) {
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isHovered, setIsHovered] = useState(false); // Для остановки автоскролла
+  const [isHovered, setIsHovered] = useState(false);
   const sliderRef = useRef(null);
 
-  // 1. Загрузка данных
   useEffect(() => {
     let isMounted = true;
+    
     const fetchDeals = async () => {
+      // Ждем, пока загрузятся курсы валют (нам нужен курс USD)
+      if (!rates || !rates.USD) return; 
+
       setLoading(true);
       try {
-        // 1. Вычисляем минимальный год (текущий - 5)
+        // 1. ОГРАНИЧЕНИЕ ПО ГОДУ (не старше 5 лет)
         const currentYear = new Date().getFullYear();
         const absoluteMinYear = currentYear - 5;
-
-        // 2. Логика фильтра года:
-        // Если пользователь уже поставил фильтр (например, 2024), берем его.
-        // Если фильтра нет или он меньше 2021 (для 2026 года), ставим 2021.
         const effectiveYearMin = filters.year_min 
           ? Math.max(Number(filters.year_min), absoluteMinYear) 
           : absoluteMinYear;
 
+        // 2. ОГРАНИЧЕНИЕ ПО ЦЕНЕ (от 25 000 $)
+        // Переводим 25 000$ в BYN по актуальному курсу НБРБ
+        const absoluteMinPriceByn = Math.round(25000 * rates.USD);
+        
+        // Если пользователь сам поставил фильтр "От" (например, от 100 000 BYN), 
+        // берем то значение, которое больше.
+        const effectivePriceMin = filters.price_min 
+          ? Math.max(Number(filters.price_min), absoluteMinPriceByn) 
+          : absoluteMinPriceByn;
+
+        // 3. ФОРМИРУЕМ ЗАПРОС
         const apiParams = { 
           ...filters, 
           sort: 'price_asc', 
-          year_min: effectiveYearMin, // Применяем ограничение "не старше 5 лет"
+          year_min: effectiveYearMin, 
+          price_min: effectivePriceMin, // Добавили фильтр цены
+          hide_lease: true,             // Скрыли лизинг!
           limit: 8, 
           offset: 0 
         };
@@ -48,9 +60,8 @@ export default function BottomMarketSlider({ filters, rates }) {
 
     fetchDeals();
     return () => { isMounted = false; };
-  }, [filters]);
+  }, [filters, rates]); // Добавили rates в зависимости
 
-  // 2. Логика кнопок прокрутки (остается без изменений)
   const scroll = (direction) => {
     if (sliderRef.current) {
       const scrollAmount = direction === 'left' ? -300 : 300;
@@ -58,14 +69,12 @@ export default function BottomMarketSlider({ filters, rates }) {
     }
   };
 
-  // 3. Автоматическая прокрутка (каждые 3 секунды)
   useEffect(() => {
     if (isHovered || deals.length === 0) return;
 
     const interval = setInterval(() => {
       if (sliderRef.current) {
         const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
-        // Если докрутили до конца — возвращаемся в начало
         if (scrollLeft + clientWidth >= scrollWidth - 10) {
           sliderRef.current.scrollTo({ left: 0, behavior: 'smooth' });
         } else {
@@ -90,11 +99,10 @@ export default function BottomMarketSlider({ filters, rates }) {
           <Flame className="text-orange-500 fill-orange-500 animate-pulse" size={24} />
           <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Низ рынка</h2>
           <span className="text-sm text-gray-500 font-medium sm:ml-2 hidden sm:block">
-            Самые доступные предложения по вашему запросу
+            Лучшие предложения от 25 000 $
           </span>
         </div>
 
-        {/* Кнопки навигации */}
         <div className="flex items-center gap-2">
           <button 
             onClick={() => scroll('left')} 
@@ -111,7 +119,6 @@ export default function BottomMarketSlider({ filters, rates }) {
         </div>
       </div>
       
-      {/* Скроллируемый контейнер (заменили hide-scrollbar на custom-scrollbar) */}
       <div 
         ref={sliderRef}
         className="flex overflow-x-auto gap-6 pb-4 snap-x snap-mandatory custom-scrollbar"
