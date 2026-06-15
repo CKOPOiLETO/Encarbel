@@ -128,12 +128,12 @@ useEffect(() => {
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
               placeholder="Быстрый поиск по названию..."
-              className="w-full border-gray-300 border rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-shadow"
+              className="w-full border-gray-300 border rounded-lg p-2.5 focus:ring-2 focus:ring-red-500 outline-none text-sm transition-shadow"
             />
           </div>
           <select
             onChange={(e) => setFilters({ ...filters, sort: e.target.value })}
-            className="border-gray-300 border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium bg-gray-50"
+            className="border-gray-300 border rounded-lg p-2 focus:ring-2 focus:ring-red-500 outline-none text-sm font-medium bg-gray-50"
           >
             <option value="newest">Новые поступления</option>
             <option value="price_asc">Сначала дешевле</option>
@@ -165,7 +165,7 @@ useEffect(() => {
         {loading && (
           <div className="flex justify-center py-10">
             <div className="flex flex-col items-center gap-2">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
               <span className="text-sm text-gray-500 font-medium">Загружаем ещё...</span>
             </div>
           </div>
@@ -176,7 +176,7 @@ useEffect(() => {
             <p className="text-gray-500 text-lg">По вашему запросу ничего не найдено.</p>
             <button 
               onClick={() => { setFilters({}); setSearchInput(''); }} 
-              className="mt-4 text-blue-600 font-bold hover:underline"
+              className="mt-4 text-red-600 font-bold hover:underline"
             >
               Сбросить поиск
             </button>

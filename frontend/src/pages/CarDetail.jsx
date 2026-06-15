@@ -93,7 +93,7 @@ export default function CarDetail() {
       return (
         <li key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-50 pb-2 last:border-0">
           <span className="flex items-start gap-2">
-            <span className="text-blue-500 font-bold mt-0.5">✓</span> 
+            <span className="text-red-500 font-bold mt-0.5">✓</span> 
             <span className="text-gray-700">{cleanName}</span>
           </span>
           <span className="text-[10px] font-bold text-gray-500 whitespace-nowrap bg-gray-100 px-2 py-1 rounded w-max">
@@ -104,7 +104,7 @@ export default function CarDetail() {
     }
     return (
       <li key={index} className="flex items-start gap-2 border-b border-gray-50 pb-2 last:border-0 text-gray-700">
-        <span className="text-blue-500 font-bold mt-0.5">✓</span> {opt}
+        <span className="text-red-500 font-bold mt-0.5">✓</span> {opt}
       </li>
     );
   };
@@ -117,13 +117,13 @@ export default function CarDetail() {
 
   if (loading || !car) return (
     <div className="flex justify-center py-20">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
     </div>
   );
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-20">
-      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-6 font-medium transition-colors cursor-pointer">
+      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-gray-500 hover:text-red-600 mb-6 font-medium transition-colors cursor-pointer">
         <ArrowLeft size={20} /> Назад в каталог
       </button>
 
@@ -141,7 +141,7 @@ export default function CarDetail() {
                 <img 
                   key={i} src={p} 
                   onClick={() => setMainPhoto(p)}
-                  className={`w-20 h-16 md:w-24 md:h-20 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${mainPhoto === p ? 'border-blue-600' : 'border-transparent opacity-60 hover:opacity-100'}`} 
+                  className={`w-20 h-16 md:w-24 md:h-20 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${mainPhoto === p ? 'border-red-600' : 'border-transparent opacity-60 hover:opacity-100'}`} 
                   alt="Thumb" 
                 />
               ))}
@@ -150,7 +150,7 @@ export default function CarDetail() {
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
             <h2 className="text-2xl font-extrabold mb-6 flex items-center gap-2 text-gray-800">
-              <Info className="text-blue-600" size={24} /> Основная информация
+              <Info className="text-red-600" size={24} /> Основная информация
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-y-8 gap-x-10">
               <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Марка</span> <span className="font-bold text-lg">{car.manufacturer}</span></div>
@@ -163,7 +163,7 @@ export default function CarDetail() {
               </div>
               <div className="border-b pb-2">
                 <span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Объем двигателя</span> 
-                <span className={`font-bold text-lg ${isElectric ? 'text-green-600' : 'text-blue-600'}`}>
+                <span className={`font-bold text-lg ${isElectric ? 'text-green-600' : 'text-red-600'}`}>
                   {isElectric ? 'Электро' : (car.displacement_cc ? `${car.displacement_cc} см³` : '-')}
                 </span>
               </div>
@@ -177,7 +177,7 @@ export default function CarDetail() {
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
             <h2 className="text-2xl font-extrabold mb-6 flex items-center gap-2 text-gray-800">
-              <FileText className="text-blue-600" size={24} /> Страховая история (Encar)
+              <FileText className="text-red-600" size={24} /> Страховая история (Encar)
             </h2>
             {car.owner_changes !== null && car.owner_changes !== undefined ? (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -231,7 +231,7 @@ export default function CarDetail() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-bold text-xl mb-6 text-gray-800 border-l-4 border-blue-600 pl-3">Уникальные опции</h3>
+              <h3 className="font-bold text-xl mb-6 text-gray-800 border-l-4 border-red-600 pl-3">Уникальные опции</h3>
               <ul className="space-y-3 text-sm">
                 {car.unique_options?.length > 0 ? car.unique_options.map((opt, i) => renderOption(opt, i)) : <li className="text-gray-400 italic">Данные отсутствуют</li>}
               </ul>
@@ -269,12 +269,12 @@ export default function CarDetail() {
               </a>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-2xl border border-blue-50 p-6 sticky top-24 max-h-[calc(100vh-6rem)] overflow-y-auto custom-scrollbar">
+            <div className="bg-white rounded-2xl shadow-2xl border border-red-100 p-6 sticky top-24">
               <div className="flex items-center justify-between mb-8">
                  <h2 className="text-xl font-black text-gray-900 uppercase flex items-center gap-2">
-                  <Calculator className="text-blue-600" /> Смета расходов
+                  <Calculator className="text-red-600" /> Смета расходов
                 </h2>
-                <span className="bg-blue-600 text-white text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">USD</span>
+                <span className="bg-red-600 text-white text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">USD</span>
               </div>
 
               <div className="bg-gray-50 rounded-2xl p-5 mb-8 space-y-5 border border-gray-100">
@@ -284,7 +284,7 @@ export default function CarDetail() {
                     type="checkbox" id="priv"
                     checked={isPrivileged} 
                     onChange={e => setIsPrivileged(e.target.checked)}
-                    className="w-6 h-6 accent-blue-600 cursor-pointer"
+                    className="w-6 h-6 accent-red-600 cursor-pointer"
                   />
                 </div>
                 
@@ -295,7 +295,7 @@ export default function CarDetail() {
                       type="number" 
                       value={volume} 
                       onChange={e => setVolume(Number(e.target.value))}
-                      className="w-full bg-white border border-gray-200 rounded-xl p-3 text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                      className="w-full bg-white border border-gray-200 rounded-xl p-3 text-lg font-bold focus:ring-2 focus:ring-red-500 outline-none transition-all shadow-sm"
                     />
                   </div>
                 ) : (
@@ -314,7 +314,7 @@ export default function CarDetail() {
 
                   <div className="flex justify-between items-center">
                     <span className="text-gray-500 text-sm font-medium flex items-center gap-2">
-                      <Truck size={16} className="text-blue-500"/> 2. Доставка до Минска
+                      <Truck size={16} className="text-red-500"/> 2. Доставка до Минска
                     </span>
                     <span className="font-bold text-lg">${costs.shippingUsd.toLocaleString()}</span>
                   </div>
@@ -322,7 +322,7 @@ export default function CarDetail() {
                   <div className="pt-4 border-t border-gray-100">
                   {/* Заголовок блока с общей суммой */}
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-[10px] font-black text-blue-600/50 uppercase tracking-widest block">
+                    <span className="text-[10px] font-black text-red-600/50 uppercase tracking-widest block">
                       3. Таможня и сборы (РБ)
                     </span>
                     <span className="font-bold text-lg">
@@ -375,7 +375,7 @@ export default function CarDetail() {
 
                   <a 
                     href={car.url} target="_blank" rel="noreferrer"
-                    className="mt-4 flex items-center justify-center gap-2 w-full bg-blue-50 text-blue-600 py-4 rounded-2xl font-black text-sm uppercase hover:bg-blue-100 transition-colors"
+                    className="mt-4 flex items-center justify-center gap-2 w-full bg-red-50 text-red-600 py-4 rounded-2xl font-black text-sm uppercase hover:bg-red-100 transition-colors"
                   >
                     Оригинал на Encar <ExternalLink size={16} />
                   </a>

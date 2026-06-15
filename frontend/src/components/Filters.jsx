@@ -44,7 +44,7 @@ function DropdownSearch({ label, options = [], value, onChange, placeholder = '�
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={`w-full border rounded-lg p-2.5 flex justify-between items-center transition-colors cursor-pointer ${
-          isOpen ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-300 hover:border-gray-400'
+          isOpen ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300 hover:border-gray-400'
         } ${disabled ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'}`}
       >
         <span className={`truncate mr-2 ${value ? 'text-gray-900' : 'text-gray-400'}`}>
@@ -72,7 +72,7 @@ function DropdownSearch({ label, options = [], value, onChange, placeholder = '�
             <input
               type="text" value={search} onChange={(e) => setSearch(e.target.value)}
               placeholder="Поиск..."
-              className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none focus:ring-2 focus:ring-red-500"
               autoFocus
             />
           </div>
@@ -87,7 +87,7 @@ function DropdownSearch({ label, options = [], value, onChange, placeholder = '�
                   <button
                     key={val} type="button" onClick={() => handleSelect(opt)}
                     className={`w-full text-left p-2 rounded-md text-sm transition-colors ${
-                      value === val ? 'bg-blue-100 text-blue-700 font-medium' : 'hover:bg-gray-100 text-gray-700'
+                      value === val ? 'bg-red-100 text-red-700 font-medium' : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
                     {lab}
@@ -159,18 +159,18 @@ function RangeInput({ label, minVal, maxVal, onChange, placeholderMin = 'От', 
           <input 
             type="number" min="0" value={localMin} onChange={handleMinChange} onKeyDown={preventInvalidChars}
             placeholder={placeholderMin} 
-            className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
+            className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white" 
           />
           <span className="text-gray-400 font-bold">—</span>
           <input 
             type="number" min="0" value={localMax} onChange={handleMaxChange} onKeyDown={preventInvalidChars}
             placeholder={placeholderMax} 
-            className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
+            className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white" 
           />
         </div>
         <button 
           onClick={applyRange} 
-          className="w-full bg-blue-600 text-white rounded-lg p-2.5 text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
+          className="w-full bg-red-600 text-white rounded-lg p-2.5 text-sm font-bold hover:bg-red-700 transition-colors shadow-sm"
         >
           Применить
         </button>
@@ -219,7 +219,7 @@ export default function Filters({ filters, setFilters }) {
       
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
         <h2 className="font-black text-xl text-gray-900 uppercase tracking-tight">Подбор авто</h2>
-        <button onClick={() => setFilters({})} className="text-xs text-blue-600 hover:text-blue-800 font-bold uppercase tracking-wider transition-colors">
+        <button onClick={() => setFilters({})} className="text-xs text-red-600 hover:text-red-800 font-bold uppercase tracking-wider transition-colors">
           Сбросить всё
         </button>
       </div>
@@ -244,10 +244,10 @@ export default function Filters({ filters, setFilters }) {
           maxVal={filters.price_max} 
           onChange={handleRangeChange('price')} 
           placeholderMin="15000" 
-          placeholderMax="35000" 
+          placeholderMax="∞" 
         />          
-        <RangeInput label="Пробег (км)" minVal={filters.mileage_min} maxVal={filters.mileage_max} onChange={handleRangeChange('mileage')} placeholderMin="10000" placeholderMax="150000" />
-        <RangeInput label="Объем двигателя (см³)" minVal={filters.displacement_min} maxVal={filters.displacement_max} onChange={handleRangeChange('displacement')} placeholderMin="1600" placeholderMax="3000" />
+        <RangeInput label="Пробег (км)" minVal={filters.mileage_min} maxVal={filters.mileage_max} onChange={handleRangeChange('mileage')} placeholderMin="0" placeholderMax="300000" />
+        <RangeInput label="Объем двигателя (см³)" minVal={filters.displacement_min} maxVal={filters.displacement_max} onChange={handleRangeChange('displacement')} placeholderMin="100" placeholderMax="7000" />
         </div>
 
         <DropdownSearch label="Тип топлива" options={options.fuels} value={filters.fuel || ''} onChange={handleDropdownChange('fuel')} placeholder="Любое топливо" />
@@ -264,7 +264,7 @@ export default function Filters({ filters, setFilters }) {
             className="w-5 h-5 accent-orange-500 cursor-pointer rounded"
           />
           <label htmlFor="hide_lease" className="text-sm font-bold text-orange-800 cursor-pointer select-none">
-            Скрыть авто в лизинг
+            Скрыть лизинговые авто
           </label>
         </div>
 

@@ -47,7 +47,7 @@ export default function CarCard({ car, rates }) {
     >
       
       {/* Бейдж статуса */}
-      <div className={`absolute top-2 right-2 text-white text-[10px] px-2 py-1 rounded font-bold z-10 uppercase tracking-widest shadow-md ${car.is_lease ? 'bg-orange-500' : 'bg-blue-600'}`}>
+      <div className={`absolute top-2 right-2 text-white text-[10px] px-2 py-1 rounded font-bold z-10 uppercase tracking-widest shadow-md ${car.is_lease ? 'bg-orange-500' : 'bg-red-600'}`}>
         {car.is_lease ? 'Лизинг' : 'Под ключ в Минск'}
       </div>
 
@@ -81,7 +81,7 @@ export default function CarCard({ car, rates }) {
             </div>
           ) : (
             <div>
-              <div className="text-blue-600 font-black text-2xl tracking-tight leading-none">
+              <div className="text-red-600 font-black text-2xl tracking-tight leading-none">
                 {totalPriceByn?.toLocaleString('ru-RU')} BYN
               </div>
               <div className="text-gray-500 font-semibold text-sm mt-1">

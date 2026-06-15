@@ -65,7 +65,7 @@ export default function CalculatorPage() {
                 <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6">
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Тип лица</label>
-                        <select name="personType" value={formData.personType} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                        <select name="personType" value={formData.personType} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-500">
                             <option value="physical">Физическое лицо</option>
                             <option value="legal">Юридическое лицо</option>
                         </select>
@@ -73,7 +73,7 @@ export default function CalculatorPage() {
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Тип двигателя</label>
-                        <select name="engineType" value={formData.engineType} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                        <select name="engineType" value={formData.engineType} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-500">
                             <option value="fuel">ДВС (Бензин/Дизель)</option>
                             <option value="electric">Электромобиль</option>
                         </select>
@@ -81,7 +81,7 @@ export default function CalculatorPage() {
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Возраст автомобиля</label>
-                        <select name="ageCategory" value={formData.ageCategory} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                        <select name="ageCategory" value={formData.ageCategory} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-500">
                             <option value="new">До 3-х лет</option>
                             <option value="medium">От 3-х до 5 лет</option>
                             <option value="old">Более 5 лет</option>
@@ -90,19 +90,19 @@ export default function CalculatorPage() {
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Стоимость авто по инвойсу (€)</label>
-                        <input type="number" min="0" name="priceEur" value={formData.priceEur} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="number" min="0" name="priceEur" value={formData.priceEur} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-500" />
                     </div>
 
                     {formData.engineType !== 'electric' && (
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Объем двигателя (см³)</label>
-                            <input type="number" min="0" name="engineVolumeCm3" value={formData.engineVolumeCm3} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500" placeholder="Например: 1600" />
+                            <input type="number" min="0" name="engineVolumeCm3" value={formData.engineVolumeCm3} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-500" placeholder="Например: 1600" />
                         </div>
                     )}
 
                     {formData.personType === 'physical' && (
                         <div className="flex items-center gap-3 pt-2">
-                            <input type="checkbox" id="u140" name="isPrivileged" checked={formData.isPrivileged} onChange={handleChange} className="w-5 h-5 accent-blue-600 rounded cursor-pointer" />
+                            <input type="checkbox" id="u140" name="isPrivileged" checked={formData.isPrivileged} onChange={handleChange} className="w-5 h-5 accent-red-600 rounded cursor-pointer" />
                             <label htmlFor="u140" className="text-sm font-bold text-gray-700 cursor-pointer select-none">Льгота (Указ №140)</label>
                         </div>
                     )}
@@ -144,7 +144,7 @@ export default function CalculatorPage() {
                                 </div>
 
                                 {formData.isPrivileged && formData.personType === 'physical' && (
-                                    <div className="mt-6 bg-blue-600/20 text-blue-400 p-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider border border-blue-500/30">
+                                    <div className="mt-6 bg-red-600/20 text-red-400 p-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider border border-red-500/30">
                                         Скидка 50% применена
                                     </div>
                                 )}
@@ -160,7 +160,7 @@ export default function CalculatorPage() {
                             </>
                         ) : (
                             <div className="flex flex-col items-center justify-center py-10">
-                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mb-4"></div>
+                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-500 mb-4"></div>
                                 <span className="text-gray-500">Загрузка курсов НБРБ...</span>
                             </div>
                         )}

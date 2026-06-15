@@ -27,7 +27,7 @@ export default function BottomMarketSlider({ filters, rates }) {
 
         // 2. ОГРАНИЧЕНИЕ ПО ЦЕНЕ (от 25 000 $)
         // Переводим 25 000$ в BYN по актуальному курсу НБРБ
-        const absoluteMinPriceByn = Math.round(25000 * rates.USD);
+        const absoluteMinPriceByn = Math.round(35000 * rates.USD);
         
         // Если пользователь сам поставил фильтр "От" (например, от 100 000 BYN), 
         // берем то значение, которое больше.
@@ -90,29 +90,29 @@ export default function BottomMarketSlider({ filters, rates }) {
 
   return (
     <div 
-      className="mb-10 bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100 shadow-inner relative"
+      className="mb-10 bg-gradient-to-r from-red-50 to-indigo-50 p-6 rounded-2xl border border-red-100 shadow-inner relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
         <div className="flex items-center gap-2">
           <Flame className="text-orange-500 fill-orange-500 animate-pulse" size={24} />
-          <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Низ рынка</h2>
+          <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Лучшая цена</h2>
           <span className="text-sm text-gray-500 font-medium sm:ml-2 hidden sm:block">
-            Лучшие предложения от 25 000 $
+            Лучшие предложения от 35 000 $
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           <button 
             onClick={() => scroll('left')} 
-            className="p-2 bg-white rounded-full shadow-sm text-gray-600 hover:text-blue-600 hover:shadow transition-all"
+            className="p-2 bg-white rounded-full shadow-sm text-gray-600 hover:text-red-600 hover:shadow transition-all"
           >
             <ChevronLeft size={20}/>
           </button>
           <button 
             onClick={() => scroll('right')} 
-            className="p-2 bg-white rounded-full shadow-sm text-gray-600 hover:text-blue-600 hover:shadow transition-all"
+            className="p-2 bg-white rounded-full shadow-sm text-gray-600 hover:text-red-600 hover:shadow transition-all"
           >
             <ChevronRight size={20}/>
           </button>

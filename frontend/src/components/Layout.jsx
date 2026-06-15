@@ -8,15 +8,15 @@ export default function Layout() {
       {/* Шапка сайта */}
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
-          <Link to="/" className="flex items-center gap-2 text-2xl font-extrabold text-blue-600">
-            <img src={logo} alt="EncarBel Logo" className="h-10 w-auto object-contain" />
+          <Link to="/" className="flex items-center gap-2 text-2xl font-extrabold text-red-600">
+            <img src={logo} alt="EncarBel Logo" className="h-20 w-auto object-contain" />
             <span>Encar<span className="text-gray-800">Bel</span></span>
           </Link>
           
           <nav className="flex gap-6 font-medium">
-            <Link to="/" className="hover:text-blue-600 transition-colors">Каталог</Link>
-            <Link to="/calculator" className="hover:text-blue-600 transition-colors">Калькулятор</Link>
-            <Link to="/about" className="hover:text-blue-600 transition-colors">О нас</Link>
+            <Link to="/" className="hover:text-red-600 transition-colors">Каталог</Link>
+            <Link to="/calculator" className="hover:text-red-600 transition-colors">Калькулятор</Link>
+            <Link to="/about" className="hover:text-red-600 transition-colors">О нас</Link>
           </nav>
         </div>
       </header>
