@@ -8,7 +8,7 @@ export default function CalculatorPage() {
 
     // Константы услуг в BYN
     const DECLARANT_BYN = 300;
-    const SVH_BYN = 400;
+    const SVH_BYN = 300;
 
     const [formData, setFormData] = useState({
         priceEur: 12000,

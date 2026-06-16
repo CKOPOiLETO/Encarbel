@@ -27,10 +27,10 @@ export default function CarCard({ car, rates }) {
       isPrivileged: true
     });
 
-    const shippingByn = 6600 * rates.USD;
+    const shippingByn = 6000 * rates.USD;
     const customsByn = (duty.customsDuty + duty.customsFee) * rates.EUR;
     const utilByn = duty.utilizationFee;
-    const fixedFeesByn = 300 + 400 + 950;
+    const fixedFeesByn = 300 + 300 + 950;
 
     totalPriceByn = Math.round(priceBynNetto + shippingByn + customsByn + utilByn + fixedFeesByn);
     totalPriceUsd = Math.round(totalPriceByn / rates.USD);

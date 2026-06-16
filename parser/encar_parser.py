@@ -170,7 +170,8 @@ def parse_choice(items: list) -> list:
 
 def parse_insurance(data: dict, car: CarData):
     """Страховая история из /record/vehicle/{id}/open"""
-    if not data or not data.get("openData"):
+    # Убрали жесткую привязку к openData. Проверяем наличие ключа ownerChangeCnt
+    if not data or data.get("ownerChangeCnt") is None:
         return
 
     car.owner_changes       = data.get("ownerChangeCnt")
@@ -179,7 +180,11 @@ def parse_insurance(data: dict, car: CarData):
     car.my_accident_cost    = data.get("myAccidentCost")
     car.other_accident_cost = data.get("otherAccidentCost")
     car.total_loss_cnt      = data.get("totalLossCnt")
-    car.flood_cnt           = (data.get("floodTotalLossCnt") or 0) + (data.get("floodPartLossCnt") or 0)
+    
+    # Защита от NoneType при сложении
+    flood_total = data.get("floodTotalLossCnt") or 0
+    flood_part  = data.get("floodPartLossCnt") or 0
+    car.flood_cnt = flood_total + flood_part
 
     car.accidents = [
         {
@@ -188,7 +193,7 @@ def parse_insurance(data: dict, car: CarData):
             "parts":    a.get("partCost"),
             "labor":    a.get("laborCost"),
             "paint":    a.get("paintingCost"),
-            "at_fault": a.get("type") == "1",  # type=1 своя вина, type=2 чужая
+            "at_fault": str(a.get("type")) == "1",  # Привели к строке для надежности
         }
         for a in (data.get("accidents") or [])
     ]

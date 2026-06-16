@@ -68,12 +68,12 @@ export default function CarDetail() {
 
     const items = {
       carUsd: priceUsd,
-      shippingUsd: 6600,
+      shippingUsd: 6000,
       dutyUsd: Math.round(eurToUsd(dutyResult.customsDuty)),
       utilizationUsd: Math.round(bynToUsd(dutyResult.utilizationFee)), 
       customsFeeUsd: Math.round(eurToUsd(dutyResult.customsFee)),
       declarantUsd: Math.round(bynToUsd(300)),
-      warehouseUsd: Math.round(bynToUsd(400)),
+      warehouseUsd: Math.round(bynToUsd(300)),
       companyFeeUsd: Math.round(bynToUsd(950)),
     };
 
@@ -179,54 +179,95 @@ export default function CarDetail() {
             <h2 className="text-2xl font-extrabold mb-6 flex items-center gap-2 text-gray-800">
               <FileText className="text-red-600" size={24} /> Страховая история (Encar)
             </h2>
-            {car.owner_changes !== null && car.owner_changes !== undefined ? (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between">
-                  <div className="flex items-center gap-2 text-gray-500 mb-2">
-                    <Users size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Владельцы</span>
+
+            <div className="space-y-6">
+              {/* СТАТИСТИКА (Показываем, если есть данные) */}
+              {car.owner_changes !== null && car.owner_changes !== undefined ? (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Смена владельцев */}
+                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between">
+                    <div className="flex items-center gap-2 text-gray-500 mb-2">
+                      <Users size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Владельцы</span>
+                    </div>
+                    <div className="text-2xl font-black text-gray-800">{car.owner_changes} <span className="text-sm font-medium text-gray-500">раз(а)</span></div>
                   </div>
-                  <div className="text-2xl font-black text-gray-800">{car.owner_changes} <span className="text-sm font-medium text-gray-500"></span></div>
+
+                  {/* Полная гибель / Затопление */}
+                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between">
+                    <div className="flex items-center gap-2 text-gray-500 mb-2">
+                      <Droplets size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Тотал / Потоп</span>
+                    </div>
+                    <div className="text-2xl font-black text-gray-800">
+                      {car.total_loss_cnt || 0} <span className="text-sm text-gray-300 mx-1">/</span> {car.flood_cnt || 0}
+                    </div>
+                  </div>
+
+                  {/* Аварии (Своя вина) */}
+                  <div className={`p-4 rounded-xl border flex flex-col justify-between ${car.my_accident_cnt > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+                    <div className={`flex items-center gap-2 mb-2 ${car.my_accident_cnt > 0 ? 'text-red-500' : 'text-gray-500'}`}>
+                      <AlertTriangle size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Своя вина</span>
+                    </div>
+                    <div>
+                      <div className={`text-2xl font-black mb-1 ${car.my_accident_cnt > 0 ? 'text-red-700' : 'text-gray-800'}`}>
+                        {car.my_accident_cnt} <span className={`text-sm font-medium ${car.my_accident_cnt > 0 ? 'text-red-400' : 'text-gray-500'}`}>раз(а)</span>
+                      </div>
+                      <div className={`text-xs font-bold ${car.my_accident_cnt > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                        Выплаты: ${getInsuranceUsd(car.my_accident_cost)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Аварии (Чужая вина) */}
+                  <div className={`p-4 rounded-xl border flex flex-col justify-between ${car.other_accident_cnt > 0 ? 'bg-orange-50 border-orange-100' : 'bg-gray-50 border-gray-100'}`}>
+                    <div className={`flex items-center gap-2 mb-2 ${car.other_accident_cnt > 0 ? 'text-orange-500' : 'text-gray-500'}`}>
+                      <Wrench size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Чужая вина</span>
+                    </div>
+                    <div>
+                      <div className={`text-2xl font-black mb-1 ${car.other_accident_cnt > 0 ? 'text-orange-700' : 'text-gray-800'}`}>
+                        {car.other_accident_cnt} <span className={`text-sm font-medium ${car.other_accident_cnt > 0 ? 'text-orange-400' : 'text-gray-500'}`}>раз(а)</span>
+                      </div>
+                      <div className={`text-xs font-bold ${car.other_accident_cnt > 0 ? 'text-orange-500' : 'text-gray-400'}`}>
+                        Выплаты: ${getInsuranceUsd(car.other_accident_cost)}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between">
-                  <div className="flex items-center gap-2 text-gray-500 mb-2">
-                    <Droplets size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Тотал / Потоп</span>
-                  </div>
-                  <div className="text-2xl font-black text-gray-800">
-                    {car.total_loss_cnt || 0} <span className="text-sm text-gray-300 mx-1">/</span> {car.flood_cnt || 0}
-                  </div>
+              ) : (
+                <div className="bg-gray-50 rounded-xl p-6 text-center border border-gray-100 text-gray-500 font-medium">
+                  Статистика аварий не была опубликована дилером. Проверьте оригинальный отчет.
                 </div>
-                <div className={`p-4 rounded-xl border flex flex-col justify-between ${car.my_accident_cnt > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
-                  <div className={`flex items-center gap-2 mb-2 ${car.my_accident_cnt > 0 ? 'text-red-500' : 'text-gray-500'}`}>
-                    <AlertTriangle size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Своя вина</span>
-                  </div>
+              )}
+
+              {/* КНОПКИ: ОТЧЕТЫ И ТЕХОСМОТР (ТЕПЕРЬ ПОКАЗЫВАЮТСЯ ВСЕГДА) */}
+              <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-100">
+                <a 
+                  href={`https://fem.encar.com/cars/report/accident/${car.car_id}`} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex-1 flex justify-between items-center bg-gray-50 hover:bg-gray-100 border border-gray-200 p-4 rounded-xl transition-colors group"
+                >
                   <div>
-                    <div className={`text-2xl font-black mb-1 ${car.my_accident_cnt > 0 ? 'text-red-700' : 'text-gray-800'}`}>
-                      {car.my_accident_cnt} <span className={`text-sm font-medium ${car.my_accident_cnt > 0 ? 'text-red-400' : 'text-gray-500'}`}>раз(а)</span>
-                    </div>
-                    <div className={`text-xs font-bold ${car.my_accident_cnt > 0 ? 'text-red-500' : 'text-gray-400'}`}>
-                      Выплаты: ${getInsuranceUsd(car.my_accident_cost)}
-                    </div>
+                    <div className="font-bold text-gray-800">Оригинальный отчет об авариях</div>
+                    <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mt-1">Откроется на Encar.com</div>
                   </div>
-                </div>
-                <div className={`p-4 rounded-xl border flex flex-col justify-between ${car.other_accident_cnt > 0 ? 'bg-orange-50 border-orange-100' : 'bg-gray-50 border-gray-100'}`}>
-                  <div className={`flex items-center gap-2 mb-2 ${car.other_accident_cnt > 0 ? 'text-orange-500' : 'text-gray-500'}`}>
-                    <Wrench size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Чужая вина</span>
-                  </div>
+                  <ExternalLink size={20} className="text-gray-400 group-hover:text-red-600 transition-colors" />
+                </a>
+                
+                <a 
+                  href={`https://www.encar.com/md/sl/mdsl_regcar.do?method=inspectionViewNew&carid=${car.car_id}`} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex-1 flex justify-between items-center bg-gray-50 hover:bg-gray-100 border border-gray-200 p-4 rounded-xl transition-colors group"
+                >
                   <div>
-                    <div className={`text-2xl font-black mb-1 ${car.other_accident_cnt > 0 ? 'text-orange-700' : 'text-gray-800'}`}>
-                      {car.other_accident_cnt} <span className={`text-sm font-medium ${car.other_accident_cnt > 0 ? 'text-orange-400' : 'text-gray-500'}`}>раз(а)</span>
-                    </div>
-                    <div className={`text-xs font-bold ${car.other_accident_cnt > 0 ? 'text-orange-500' : 'text-gray-400'}`}>
-                      Выплаты: ${getInsuranceUsd(car.other_accident_cost)}
-                    </div>
+                    <div className="font-bold text-gray-800">Лист технического осмотра</div>
+                    <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mt-1">Откроется на Encar.com</div>
                   </div>
-                </div>
+                  <ExternalLink size={20} className="text-gray-400 group-hover:text-red-600 transition-colors" />
+                </a>
               </div>
-            ) : (
-              <div className="bg-gray-50 rounded-xl p-6 text-center border border-gray-100 text-gray-500 font-medium">
-                Данные о страховой истории не были опубликованы дилером.
-              </div>
-            )}
+
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
