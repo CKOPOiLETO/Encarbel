@@ -17,6 +17,7 @@ export default function Layout() {
             <Link to="/" className="hover:text-red-600 transition-colors">Каталог</Link>
             <Link to="/calculator" className="hover:text-red-600 transition-colors">Калькулятор</Link>
             <Link to="/about" className="hover:text-red-600 transition-colors">О нас</Link>
+            <Link to="/contacts" className="hover:text-red-600 transition-colors">Контакты</Link>
           </nav>
         </div>
       </header>

@@ -4,6 +4,7 @@ import Catalog from './pages/Catalog';
 import CarDetail from './pages/CarDetail';
 import Calculator from './pages/Calculator';
 import About from './pages/About';
+import Contacts from './pages/Contacts';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="car/:id" element={<CarDetail />} />
           <Route path="calculator" element={<Calculator />} />
           <Route path="about" element={<About />} />
+          <Route path="contacts" element={<Contacts />} />
         </Route>
       </Routes>
     </BrowserRouter>

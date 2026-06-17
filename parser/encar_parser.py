@@ -32,7 +32,7 @@ log = logging.getLogger("encar")
 SEARCH_URL    = "https://api.encar.com/search/car/list/general"
 VEHICLE_URL   = "https://api.encar.com/v1/readside/vehicle/{id}"
 CHOICE_URL    = "https://api.encar.com/v1/readside/vehicles/car/{vehicle_id}/options/choice"
-RECORD_URL    = "https://api.encar.com/v1/readside/record/vehicle/{id}/open?vehicleNo={vehicle_no}"
+RECORD_URL = "https://api.encar.com/v1/readside/record/vehicle/{id}/open"
 DETAIL_PAGE   = "https://fem.encar.com/cars/detail/{id}"
 PHOTO_BASE    = "https://ci.encar.com"
 
@@ -104,6 +104,7 @@ class CarData:
 # ── Парсинг ────────────────────────────────────────────────────────────────────
 
 def parse_vehicle(data: dict, car: CarData, option_map: dict) -> tuple[Optional[int], str, str]:
+    car.vehicle_no = data.get("vehicleNo") or ""
     cat = data.get("category") or {}
 
     manufacturer_ko = cat.get("manufacturerName")     or ""
@@ -171,18 +172,19 @@ def parse_choice(items: list) -> list:
 
 def parse_insurance(data: dict, car: CarData):
     """Страховая история из /record/vehicle/{id}/open"""
-    # Убрали жесткую привязку к openData. Проверяем наличие ключа ownerChangeCnt
+    
+    # ВАЖНО: Никаких проверок на openData! Проверяем только наличие данных о владельцах.
+    # Используем `is None`, так как значение может быть нулем (0 владельцев)
     if not data or data.get("ownerChangeCnt") is None:
         return
 
-    car.owner_changes       = data.get("ownerChangeCnt")
-    car.my_accident_cnt     = data.get("myAccidentCnt")
-    car.other_accident_cnt  = data.get("otherAccidentCnt")
-    car.my_accident_cost    = data.get("myAccidentCost")
-    car.other_accident_cost = data.get("otherAccidentCost")
-    car.total_loss_cnt      = data.get("totalLossCnt")
-    
-    # Защита от NoneType при сложении
+    car.owner_changes       = data.get("ownerChangeCnt") or 0
+    car.my_accident_cnt     = data.get("myAccidentCnt") or 0
+    car.other_accident_cnt  = data.get("otherAccidentCnt") or 0
+    car.my_accident_cost    = data.get("myAccidentCost") or 0
+    car.other_accident_cost = data.get("otherAccidentCost") or 0
+    car.total_loss_cnt      = data.get("totalLossCnt") or 0
+
     flood_total = data.get("floodTotalLossCnt") or 0
     flood_part  = data.get("floodPartLossCnt") or 0
     car.flood_cnt = flood_total + flood_part
@@ -194,11 +196,10 @@ def parse_insurance(data: dict, car: CarData):
             "parts":    a.get("partCost"),
             "labor":    a.get("laborCost"),
             "paint":    a.get("paintingCost"),
-            "at_fault": str(a.get("type")) == "1",  # Привели к строке для надежности
+            "at_fault": str(a.get("type")) == "1",  # 1 = своя вина, остальное чужая
         }
         for a in (data.get("accidents") or [])
     ]
-
 
 # ── Основной класс ─────────────────────────────────────────────────────────────
 
@@ -322,13 +323,11 @@ class EncarParser:
         choice_items = parse_choice(choice_raw) if choice_raw and isinstance(choice_raw, list) else []
 
         # 3. Страховая история (vehicleNo берём из ответа vehicle)
-        vehicle_no = vehicle.get("vehicleNo") or ""
-        if vehicle_no:
-            insurance = await self._get(
-                RECORD_URL.format(id=car_id, vehicle_no=quote(vehicle_no)),
-                headers=HEADERS_DETAIL,
-            )
-            parse_insurance(insurance, car)
+        insurance = await self._get(
+            RECORD_URL.format(id=car_id),
+            headers=HEADERS_DETAIL,
+        )
+        parse_insurance(insurance, car)
 
         # 4. Перевод
         if self.translate and self._translator:
