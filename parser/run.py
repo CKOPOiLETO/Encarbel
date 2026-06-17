@@ -46,6 +46,7 @@ async def run(args):
         
         # 1. Сверяемся с БД
         known_ids = await db.get_known_ids()
+        known_vnos = await db.get_known_vehicle_nos() # <--- Загружаем известные номера
         log.info(f"В базе уже есть {len(known_ids)} машин.")
         
         all_ids_on_site = await parser.fetch_ids(total=args.total)
@@ -58,13 +59,12 @@ async def run(args):
             return
 
         total_new = len(new_ids)
-        log.info(f"Найдено {total_new} абсолютно НОВЫХ машин. Начинаем скачивание...")
+        log.info(f"Найдено {total_new} новых ID объявлений. Начинаем проверку и скачивание...")
         
         sem = asyncio.Semaphore(parser.concurrency)
         total_stats = {"inserted": 0, "updated": 0, "unchanged": 0}
         
-        # 2. СКАЧИВАЕМ И СОХРАНЯЕМ БАТЧАМИ (ПОРЦИЯМИ)
-        # Идем по списку ID шагами по args.batch (по умолчанию 200)
+        # 2. СКАЧИВАЕМ И СОХРАНЯЕМ БАТЧАМИ
         for i in range(0, total_new, args.batch):
             chunk_ids = new_ids[i : i + args.batch]
             cars_chunk = []
@@ -73,19 +73,27 @@ async def run(args):
                 async with sem:
                     car = await parser.fetch_car(car_id)
                     if car:
+                        # --- ЛОГИКА АНТИ-ДУБЛИКАТА ---
+                        # Если номер авто (госномер) уже есть в нашем наборе - пропускаем!
+                        if car.vehicle_no and car.vehicle_no in known_vnos:
+                            # log.debug(f"Дубликат отсеян: {car.vehicle_no}") # Можно раскомментировать для проверки
+                            return
+                        
+                        # Если номера не было, добавляем его в память, чтобы не пустить дубль в этом же батче
+                        if car.vehicle_no:
+                            known_vnos.add(car.vehicle_no)
+                            
                         cars_chunk.append(car)
 
-            # Ждем пока скачается 200 машин
             await asyncio.gather(*[fetch_one(cid) for cid in chunk_ids])
             
-            # СРАЗУ СОХРАНЯЕМ ИХ В БАЗУ!
             if cars_chunk:
                 stats = await db.upsert_many(cars_chunk)
                 total_stats["inserted"] += stats["inserted"]
                 total_stats["updated"]  += stats["updated"]
                 total_stats["unchanged"]+= stats["unchanged"]
                 
-            log.info(f"  Прогресс: сохранено в БД {min(i + args.batch, total_new)} / {total_new}")
+            log.info(f"  Прогресс: обработано {min(i + args.batch, total_new)} / {total_new}")
             
         print(f"\n" + "="*30)
         print(f"✅ ЗАГРУЗКА ЗАВЕРШЕНА")

@@ -62,6 +62,7 @@ HEADERS_DETAIL = {
 @dataclass
 class CarData:
     car_id:           int
+    vehicle_no:       str            = ""
     url:              str            = ""
     title:            str            = ""
     manufacturer:     str            = ""

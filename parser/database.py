@@ -44,6 +44,7 @@ def get_database_url() -> str:
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS cars (
     car_id              BIGINT          PRIMARY KEY,
+    vehicle_no          TEXT,
     url                 TEXT,
     title               TEXT,
     manufacturer        TEXT,
@@ -76,6 +77,7 @@ CREATE TABLE IF NOT EXISTS cars (
 );
 
 -- Индексы для быстрых выборок
+CREATE INDEX IF NOT EXISTS idx_cars_vehicle_no ON cars (vehicle_no);
 CREATE INDEX IF NOT EXISTS idx_cars_manufacturer    ON cars (manufacturer);
 CREATE INDEX IF NOT EXISTS idx_cars_manufacture_date ON cars (manufacture_date);
 CREATE INDEX IF NOT EXISTS idx_cars_price_won       ON cars (price_won);
@@ -126,7 +128,7 @@ class Database:
                 # Новое объявление
                 await conn.execute("""
                     INSERT INTO cars (
-                        car_id, url, title, manufacturer, model, model_group, grade,
+                        car_id, vehicle_no, url, title, manufacturer, model, model_group, grade,
                         manufacture_date, mileage, price_won, displacement_cc,
                         fuel, transmission, color, body_type, is_lease,
                         owner_changes, my_accident_cnt, other_accident_cnt,
@@ -134,9 +136,9 @@ class Database:
                         accidents, standard_options, unique_options, photos,
                         is_active
                     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
-                              $17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
+                              $17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29)
                 """,
-                    car.car_id, car.url, car.title, car.manufacturer,
+                    car.car_id, car.vehicle_no, car.url, car.title, car.manufacturer,
                     car.model, car.model_group, car.grade,
                     car.manufacture_date, car.mileage, car.price_won, car.displacement_cc,
                     car.fuel, car.transmission, car.color, car.body_type, car.is_lease,
@@ -201,6 +203,14 @@ class Database:
             rows = await conn.fetch("SELECT car_id FROM cars")
         return {r["car_id"] for r in rows}
 
+
+    async def get_known_vehicle_nos(self) -> set[str]:
+        """Все известные номера авто (для фильтрации дубликатов)."""
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch("SELECT vehicle_no FROM cars WHERE vehicle_no IS NOT NULL AND vehicle_no != ''")
+        return {r["vehicle_no"] for r in rows}
+    
+    
     async def mark_removed(self, car_ids: list[int]):
         """Помечаем объявления как удалённые."""
         if not car_ids:
