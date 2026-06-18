@@ -32,7 +32,8 @@ log = logging.getLogger("encar")
 SEARCH_URL    = "https://api.encar.com/search/car/list/general"
 VEHICLE_URL   = "https://api.encar.com/v1/readside/vehicle/{id}"
 CHOICE_URL    = "https://api.encar.com/v1/readside/vehicles/car/{vehicle_id}/options/choice"
-RECORD_URL = "https://api.encar.com/v1/readside/record/vehicle/{id}/open"
+# RECORD_URL = "https://api.encar.com/v1/readside/record/vehicle/{id}/open"
+RECORD_URL = "https://api.encar.com/v1/readside/record/vehicle/{id}/open?vehicleNo={vehicle_no}"
 DETAIL_PAGE   = "https://fem.encar.com/cars/detail/{id}"
 PHOTO_BASE    = "https://ci.encar.com"
 
@@ -173,30 +174,33 @@ def parse_choice(items: list) -> list:
 def parse_insurance(data: dict, car: CarData):
     """Страховая история из /record/vehicle/{id}/open"""
     
-    # ВАЖНО: Никаких проверок на openData! Проверяем только наличие данных о владельцах.
-    # Используем `is None`, так как значение может быть нулем (0 владельцев)
-    if not data or data.get("ownerChangeCnt") is None:
+    if not data:
         return
+        
 
+    # ЗАЩИТА ОТ NULL: `or 0` гарантирует, что фронтенд отрисует блок
     car.owner_changes       = data.get("ownerChangeCnt") or 0
     car.my_accident_cnt     = data.get("myAccidentCnt") or 0
     car.other_accident_cnt  = data.get("otherAccidentCnt") or 0
     car.my_accident_cost    = data.get("myAccidentCost") or 0
     car.other_accident_cost = data.get("otherAccidentCost") or 0
     car.total_loss_cnt      = data.get("totalLossCnt") or 0
+    
+    # Тут ты написал абсолютно правильно!
+    car.flood_cnt = (data.get("floodTotalLossCnt") or 0) + (data.get("floodPartLossCnt") or 0)
 
-    flood_total = data.get("floodTotalLossCnt") or 0
-    flood_part  = data.get("floodPartLossCnt") or 0
-    car.flood_cnt = flood_total + flood_part
-
+    # ТВОЯ ЛОГИКА ТИПОВ (Идеально!)
+    # type: "1" = своя вина, "2" = чужая вина, "3" = выплата третьей стороне/имуществу
+    TYPE_MAP = {"1": "my_fault", "2": "other_fault", "3": "third_party"}
+    
     car.accidents = [
         {
             "date":     a.get("date"),
+            "type":     TYPE_MAP.get(str(a.get("type")), str(a.get("type"))), # str() для защиты от чисел
             "cost":     a.get("insuranceBenefit"),
             "parts":    a.get("partCost"),
             "labor":    a.get("laborCost"),
             "paint":    a.get("paintingCost"),
-            "at_fault": str(a.get("type")) == "1",  # 1 = своя вина, остальное чужая
         }
         for a in (data.get("accidents") or [])
     ]
@@ -317,17 +321,19 @@ class EncarParser:
             return None
         vehicle_id, model_ko, model_group_ko = parse_vehicle(vehicle, car, self._option_map)
 
+        vid = vehicle_id or car_id
+
         # 2. Уникальные опции с ценами
-        vid        = vehicle_id or car_id
         choice_raw = await self._get(CHOICE_URL.format(vehicle_id=vid), headers=HEADERS_DETAIL)
         choice_items = parse_choice(choice_raw) if choice_raw and isinstance(choice_raw, list) else []
 
-        # 3. Страховая история (vehicleNo берём из ответа vehicle)
-        insurance = await self._get(
-            RECORD_URL.format(id=car_id),
-            headers=HEADERS_DETAIL,
-        )
-        parse_insurance(insurance, car)
+        # 3. Страховая история
+        if car.vehicle_no:
+            insurance = await self._get(
+                RECORD_URL.format(id=vid, vehicle_no=car.vehicle_no), 
+                headers=HEADERS_DETAIL,
+            )
+            parse_insurance(insurance, car)
 
         # 4. Перевод
         if self.translate and self._translator:
