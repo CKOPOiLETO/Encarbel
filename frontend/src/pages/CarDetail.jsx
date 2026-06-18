@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Calculator, Info, ShieldCheck, Truck, ExternalLink, FileText, AlertTriangle, Users, Droplets, Wrench } from 'lucide-react';
+import { ArrowLeft, Calculator, Info, ShieldCheck, Truck, ExternalLink, FileText, AlertTriangle, Users, Droplets, Wrench, ChevronDown } from 'lucide-react';
 import { BelarusCustomsCalculator } from '../utils/calculator';
 
 export default function CarDetail() {
   const { id } = useParams();
+  const [showUnique, setShowUnique] = useState(true);    
+  const [showStandard, setShowStandard] = useState(false);
   const navigate = useNavigate();
   const [car, setCar] = useState(null);
   const [rates, setRates] = useState(null);
@@ -47,9 +49,9 @@ export default function CarDetail() {
     if (!car || !rates || car.is_lease) return null;
 
     const calc = new BelarusCustomsCalculator();
-    
+    const basePriceByn = car.price_won * rates.KRW;
     const priceByn = car.price_won * rates.KRW;
-    const priceUsd = Math.round(priceByn / rates.USD);
+    const priceUsd = Math.round((basePriceByn * 1.035) / rates.USD);
     const priceEur = priceByn / rates.EUR;
 
     const age = (new Date().getFullYear() - (car.manufacture_date ? new Date(car.manufacture_date).getFullYear() : car.year)) <= 5 ? 'medium' : 'old';
@@ -270,21 +272,68 @@ export default function CarDetail() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-bold text-xl mb-6 text-gray-800 border-l-4 border-red-600 pl-3">Уникальные опции</h3>
-              <ul className="space-y-3 text-sm">
-                {car.unique_options?.length > 0 ? car.unique_options.map((opt, i) => renderOption(opt, i)) : <li className="text-gray-400 italic">Данные отсутствуют</li>}
-              </ul>
-            </div>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-bold text-xl mb-6 text-gray-800 border-l-4 border-gray-300 pl-3">Комплектация</h3>
-              <div className="flex flex-wrap gap-2">
-                {car.standard_options?.map((opt, i) => (
-                  <span key={i} className="bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 uppercase tracking-tight">{opt}</span>
-                ))}
+          <div className="space-y-4">
+            
+            {/* УНИКАЛЬНЫЕ ОПЦИИ */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <button 
+                onClick={() => setShowUnique(!showUnique)}
+                className="w-full flex items-center justify-between p-6 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <h3 className="font-bold text-xl text-gray-800 border-l-4 border-red-600 pl-3 flex items-center gap-2">
+                  Уникальные опции 
+                  <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
+                    {car.unique_options?.length || 0}
+                  </span>
+                </h3>
+                <ChevronDown className={`text-gray-400 transition-transform duration-300 ${showUnique ? 'rotate-180' : ''}`} />
+              </button>
+              
+              <div className={`grid transition-all duration-300 ease-in-out ${showUnique ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
+                  <div className="p-6 pt-0 border-t border-gray-50">
+                    <ul className="space-y-3 text-sm mt-4">
+                      {car.unique_options?.length > 0 
+                        ? car.unique_options.map((opt, i) => renderOption(opt, i)) 
+                        : <li className="text-gray-400 italic">Данные отсутствуют</li>}
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* СТАНДАРТНАЯ КОМПЛЕКТАЦИЯ */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <button 
+                onClick={() => setShowStandard(!showStandard)}
+                className="w-full flex items-center justify-between p-6 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <h3 className="font-bold text-xl text-gray-800 border-l-4 border-gray-300 pl-3 flex items-center gap-2">
+                  Комплектация
+                  <span className="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded-full">
+                    {car.standard_options?.length || 0}
+                  </span>
+                </h3>
+                <ChevronDown className={`text-gray-400 transition-transform duration-300 ${showStandard ? 'rotate-180' : ''}`} />
+              </button>
+              
+              <div className={`grid transition-all duration-300 ease-in-out ${showStandard ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
+                  <div className="p-6 pt-0 border-t border-gray-50">
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {car.standard_options?.length > 0 
+                        ? car.standard_options.map((opt, i) => (
+                            <span key={i} className="bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 uppercase tracking-tight">
+                              {opt}
+                            </span>
+                          )) 
+                        : <p className="text-gray-400 italic">Данные отсутствуют</p>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -373,8 +422,15 @@ export default function CarDetail() {
                   
                   {/* Раскладка блока */}
                   <div className="space-y-3 ml-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Таможенная пошлина</span>
+                  <div className="flex justify-between text-sm items-center">
+                      <span className="text-gray-500">
+                        Пошлина + Тамож. сбор
+                        {isPrivileged && (
+                          <span className="text-[10px] ml-1.5 text-red-500 font-bold uppercase tracking-tighter">
+                            (140 указ)
+                          </span>
+                        )}
+                      </span>
                       <span className="font-bold text-gray-800">${(costs.dutyUsd + costs.customsFeeUsd).toLocaleString('ru-RU')}</span>
                     </div>
                     <div className="flex justify-between text-sm">

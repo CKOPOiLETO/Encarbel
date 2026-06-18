@@ -92,7 +92,7 @@ async def get_cars(
     # Используем manufacture_date вместо year
     turnkey_sql = f"""
     (
-        (COALESCE(price_won, 0) * {krw}) 
+        (COALESCE(price_won, 0) * {krw} * 1.035) 
         + (6000 * {usd}) 
         + 1550 
         + (CASE WHEN manufacture_date > CURRENT_DATE - INTERVAL '3 years' THEN 624.92 ELSE 1282.02 END) 

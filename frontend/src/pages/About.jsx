@@ -29,17 +29,17 @@ export default function About() {
             <div className="text-sm font-semibold text-gray-800 uppercase tracking-wider">на рынке</div>
           </div>
           <div className="p-4 relative">
-            <div className="hidden md:block absolute -left-6 top-1/2 -translate-y-1/2 text-gray-300 text-6xl font-light italic">/</div>
+            <div className="hidden md:block absolute -left-6 top-1/2 -translate-y-1/2 text-gray-300 text-6xl font-light italic"></div>
             <div className="text-5xl md:text-6xl font-black text-red-600 mb-2">22000+</div>
             <div className="text-sm font-semibold text-gray-800 uppercase tracking-wider">доставленных<br/>автомобилей</div>
           </div>
           <div className="p-4 relative">
-            <div className="hidden md:block absolute -left-6 top-1/2 -translate-y-1/2 text-gray-300 text-6xl font-light italic">/</div>
+            <div className="hidden md:block absolute -left-6 top-1/2 -translate-y-1/2 text-gray-300 text-6xl font-light italic"></div>
             <div className="text-5xl md:text-6xl font-black text-red-600 mb-2">52</div>
             <div className="text-sm font-semibold text-gray-800 uppercase tracking-wider">эксперта в<br/>команде</div>
           </div>
           <div className="p-4 relative">
-            <div className="hidden md:block absolute -left-6 top-1/2 -translate-y-1/2 text-gray-300 text-6xl font-light italic">/</div>
+            <div className="hidden md:block absolute -left-6 top-1/2 -translate-y-1/2 text-gray-300 text-6xl font-light italic"></div>
             <div className="text-5xl md:text-6xl font-black text-red-600 mb-2">99%</div>
             <div className="text-sm font-semibold text-gray-800 uppercase tracking-wider">довольных<br/>клиентов</div>
           </div>
@@ -129,7 +129,7 @@ export default function About() {
               <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-red-500 bg-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-transform group-hover:scale-110"></div>
               <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] p-6 rounded-2xl bg-white shadow-sm border border-gray-100 group-hover:shadow-lg transition-shadow">
                 <div className="text-2xl font-black text-red-600 mb-2">2026</div>
-                <div className="text-sm text-gray-700 font-medium">Развитие премиального направления и расширение присутствия на белорусском рынке.</div>
+                <div className="text-sm text-gray-700 font-medium">Развитие премиального направления и расширение присутствия на беларуском рынке.</div>
               </div>
             </div>
           </div>

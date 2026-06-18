@@ -104,13 +104,13 @@ export default function Contacts() {
               <h3 className="text-3xl font-black uppercase mb-10 tracking-tighter">Связаться</h3>
               
               <div className="space-y-10">
-                <a href="tel:+375293558447" className="flex items-center gap-5 group">
+                <a href="tel:+375296892020" className="flex items-center gap-5 group">
                   <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-red-600 shadow-lg group-hover:scale-110 transition-transform">
                     <Phone size={24} fill="currentColor" />
                   </div>
                   <div>
                     <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Многоканальный</div>
-                    <div className="text-xl font-black">+375 (29) 355 84 47</div>
+                    <div className="text-xl font-black">+375 (29) 689 20 20</div>
                   </div>
                 </a>
 
@@ -126,13 +126,13 @@ export default function Contacts() {
               </div>
             </div>
 
-            {/* <div className="bg-black/40 backdrop-blur-md p-8 rounded-3xl border border-white/20 text-center shadow-2xl">
+            <div className="bg-black/40 backdrop-blur-md p-8 rounded-3xl border border-white/20 text-center shadow-2xl">
               <div className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-6">Социальные сети</div>
               <div className="flex justify-center gap-6">
                 <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white hover:bg-red-600 transition-all cursor-pointer border border-white/10 font-black italic shadow-lg hover:shadow-red-600/20">Inst</div>
                 <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white hover:bg-blue-600 transition-all cursor-pointer border border-white/10 font-black italic shadow-lg hover:shadow-blue-600/20">Tg</div>
               </div>
-            </div> */}
+            </div>
           </div>
 
         </div>

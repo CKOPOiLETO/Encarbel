@@ -15,7 +15,7 @@ export default function CarCard({ car, rates }) {
   let totalPriceUsd = null;
 
   if (!car.is_lease) {
-    const priceBynNetto = car.price_won * rates.KRW;
+    const priceBynNetto = car.price_won * rates.KRW * 1.035;
     const priceEurNetto = priceBynNetto / rates.EUR;
     
     const duty = calc.calculate({
