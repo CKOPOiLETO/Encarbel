@@ -20,6 +20,13 @@ export default function Catalog() {
     return saved ? (JSON.parse(saved).search || '') : '';
   });
   useEffect(() => {
+    document.title = "Каталог авто из Кореи под ключ | EncarBel";
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute('content', 'Каталог автомобилей из Южной Кореи. Цены под ключ с доставкой и растаможкой в Минск. Фильтры, честный расчет.');
+    }
+  }, []);
+  useEffect(() => {
     sessionStorage.setItem('encar_filters', JSON.stringify(filters));
   }, [filters]);
   // Задержка ввода (Debounce): ждем 500мс после того как пользователь перестал печатать,

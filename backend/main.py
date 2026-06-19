@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import asyncpg
 from dotenv import load_dotenv
 from pathlib import Path
-
+from fastapi.responses import Response
 # Ищем .env в корне проекта (на уровень выше папки backend)
 env_path = Path(__file__).resolve().parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
@@ -324,3 +324,34 @@ async def get_filter_options():
         "fuels": sorted([f['fuel'] for f in fuel_rows]),
         "body_types": sorted([b['body_type'] for b in body_rows])
     }
+
+
+
+@app.get("/sitemap.xml")
+async def get_sitemap():
+    DOMAIN = "https://encarbel.by" 
+    
+    async with pool.acquire() as conn:
+        # Получаем ID всех активных машин
+        rows = await conn.fetch("SELECT car_id, last_updated_at FROM cars WHERE is_active = TRUE")
+
+    urls = ""
+    for r in rows:
+        # Дата последнего обновления для SEO
+        lastmod = r['last_updated_at'].strftime("%Y-%m-%d")
+        urls += f"""
+        <url>
+            <loc>{DOMAIN}/car/{r['car_id']}</loc>
+            <lastmod>{lastmod}</lastmod>
+            <priority>0.8</priority>
+        </url>"""
+
+    sitemap = f"""<?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+       <url><loc>{DOMAIN}/</loc><priority>1.0</priority></url>
+       <url><loc>{DOMAIN}/calculator</loc><priority>0.9</priority></url>
+       <url><loc>{DOMAIN}/about</loc><priority>0.9</priority></url>
+       {urls}
+    </urlset>"""
+    
+    return Response(content=sitemap, media_type="application/xml")

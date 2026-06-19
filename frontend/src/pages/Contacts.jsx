@@ -1,6 +1,9 @@
 import React from 'react';
 import { MapPin, Phone, Mail, Clock, ExternalLink } from 'lucide-react';
 import bgImage from '../assets/contacts_bg.webp';
+import tg_logo from '../assets/tg_logo.PNG'; 
+import inst_logo from '../assets/instagram.PNG'; 
+
 
 export default function Contacts() {
     const contacts = [
@@ -129,10 +132,20 @@ export default function Contacts() {
             <div className="bg-black/40 backdrop-blur-md p-8 rounded-3xl border border-white/20 text-center shadow-2xl">
               <div className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-6">Социальные сети</div>
               <div className="flex justify-center gap-6">
-                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white hover:bg-red-600 transition-all cursor-pointer border border-white/10 font-black italic shadow-lg hover:shadow-red-600/20">Inst</div>
-                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white hover:bg-blue-600 transition-all cursor-pointer border border-white/10 font-black italic shadow-lg hover:shadow-blue-600/20">Tg</div>
+                
+                {/* Instagram */}
+                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white cursor-pointer border border-white/10 font-black italic shadow-lg transition-transform duration-200 ease-in-out hover:scale-105 overflow-hidden">
+                  <img src={inst_logo} alt="instagram logo" className="w-full h-full object-cover" />
+                </div>
+                
+                {/* Telegram */}
+                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white cursor-pointer border border-white/10 font-black italic shadow-lg transition-transform duration-200 ease-in-out hover:scale-105 overflow-hidden">
+                  <img src={tg_logo} alt="tg logo" className="w-full h-full p-3 object-contain" />
+                </div>
+
               </div>
             </div>
+
           </div>
 
         </div>

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Ссылка на карту сайта, которую генерирует бэкенд
+Sitemap: https://encarbel.by/sitemap.xml

@@ -83,6 +83,19 @@ export default function CarDetail() {
 
     return { ...items, total, priceEur };
   }, [car, rates, isPrivileged, volume, isElectric]);
+  useEffect(() => {
+    if (car) {
+      document.title = `Купить ${car.manufacturer} ${car.model} ${car.year} из Кореи | EncarBel`;
+      
+      const metaDescription = document.querySelector('meta[name="description"]');
+      if (metaDescription) {
+        metaDescription.setAttribute(
+          'content', 
+          `Заказать ${car.manufacturer} ${car.model} ${car.year} г.в. Пробег ${car.mileage?.toLocaleString()} км. Цена под ключ в Минске. Отчеты Encar, проверка, доставка из Южной Кореи.`
+        );
+      }
+    }
+  }, [car]);
 
   const renderOption = (opt, index) => {
     const match = opt.match(/\(([\d,]+)₩\)/);
