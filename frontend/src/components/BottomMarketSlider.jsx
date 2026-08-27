@@ -19,36 +19,18 @@ export default function BottomMarketSlider({ filters, rates }) {
 
       setLoading(true);
       try {
-        // Задаем жесткие рамки премиум-сегмента (от $60к до $110к) и случайный порядок
-        const premiumParams = { 
-          ...filters, 
-          sort: 'random', 
-          price_min: 60000, 
-          price_max: 110000, 
-          hide_lease: true,
-          limit: 8, 
-          offset: 0 
-        };
-
-        let { data } = await axios.get('/cars', { params: premiumParams });
+        const premiumParams = { ...filters, sort: 'random', price_min: 60000, price_max: 110000, hide_lease: true, limit: 8, offset: 0 };
+        const response = await axios.get('/cars', { params: premiumParams });
         
-        // УМНАЯ ЗАГЛУШКА: Если пользователь ищет "Lada" или ставит год 2012, 
-        // премиум-машин по его фильтрам не найдется.
-        // В таком случае мы сбрасываем его фильтры и показываем ГЛОБАЛЬНЫЙ рандомный премиум!
-        if (data.length === 0) {
-          const fallbackParams = {
-            sort: 'random',
-            price_min: 60000,
-            price_max: 110000,
-            hide_lease: true,
-            limit: 8,
-            offset: 0
-          };
+        let carsList = response.data.items; // БЕРЕМ .items
+        
+        if (carsList.length === 0) {
+          const fallbackParams = { sort: 'random', price_min: 60000, price_max: 110000, hide_lease: true, limit: 8, offset: 0 };
           const fallbackResponse = await axios.get('/cars', { params: fallbackParams });
-          data = fallbackResponse.data;
+          carsList = fallbackResponse.data.items; // БЕРЕМ .items
         }
         
-        if (isMounted) setDeals(data);
+        if (isMounted) setDeals(carsList);
       } catch (error) {
         console.error("Ошибка загрузки премиум сегмента", error);
       } finally {

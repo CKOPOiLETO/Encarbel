@@ -205,13 +205,20 @@ export default function Filters({ filters, setFilters, isHistory = false }) {
       .catch(err => { console.error("Ошибка загрузки фильтров:", err); setLoading(false); });
   }, []);
 
-  const availableGroups = (filters.manufacturer && options.hierarchy) 
-    ? Object.keys(options.hierarchy[filters.manufacturer] || {}) 
-    : [];
+  const makeKey = filters.manufacturer 
+    ? Object.keys(options.hierarchy || {}).find(k => k.toLowerCase() === filters.manufacturer.toLowerCase()) 
+    : null;
 
-  const availableSpecificModels = (filters.manufacturer && filters.model_group && options.hierarchy)
-    ? (options.hierarchy[filters.manufacturer]?.[filters.model_group] || [])
-    : [];
+  // Если нашли марку, достаем её группы моделей
+  const availableGroups = makeKey ? Object.keys(options.hierarchy[makeKey]) : [];
+
+  // 2. Находим правильный ключ группы моделей
+  const groupKey = (makeKey && filters.model_group) 
+    ? Object.keys(options.hierarchy[makeKey]).find(k => k.toLowerCase() === filters.model_group.toLowerCase()) 
+    : null;
+
+  // Если нашли группу, достаем конкретные поколения
+  const availableSpecificModels = groupKey ? options.hierarchy[makeKey][groupKey] : [];
 
   const handleDropdownChange = (name) => (value) => {
     setFilters(prev => {

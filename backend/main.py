@@ -145,8 +145,7 @@ async def get_rates():
 # --- ЭНДПОИНТ ФИЛЬТРОВ ---
 @app.get("/api/filters")
 async def get_filter_options(is_history: bool = False):
-    # Если это история - ищем проданные (is_active = FALSE) от 2020 года.
-    # Если каталог - ищем активные (is_active = TRUE) от 2012 года.
+    # Если история - ищем проданные. Если каталог - активные.
     if is_history:
         condition = "is_active = FALSE AND EXTRACT(YEAR FROM manufacture_date) >= 2020"
     else:
@@ -165,7 +164,9 @@ async def get_filter_options(is_history: bool = False):
             GROUP BY manufacturer, model_group, model
         """)
         fuel_rows = await conn.fetch(f"SELECT DISTINCT fuel FROM cars WHERE {condition} AND fuel != ''")
-        body_rows = await conn.fetch(f"SELECT DISTINCT body_type FROM cars WHERE {condition} AND body_type != ''")
+        
+        # ИСПРАВЛЕНО: Вернули выборку ЦВЕТОВ вместо кузовов
+        color_rows = await conn.fetch(f"SELECT DISTINCT color FROM cars WHERE {condition} AND color IS NOT NULL AND color != ''")
 
     hierarchy = {}
     for r in rows:
@@ -193,7 +194,7 @@ async def get_filter_options(is_history: bool = False):
         "manufacturers": sorted(list(hierarchy.keys())),
         "hierarchy": hierarchy,
         "fuels": sorted([f['fuel'] for f in fuel_rows]),
-        "body_types": sorted([b['body_type'] for b in body_rows])
+        "colors": sorted([c['color'] for c in color_rows]) # <--- ВОЗВРАЩАЕМ ЦВЕТА
     }
 
 
@@ -206,7 +207,7 @@ async def get_history(
     mileage_max: int = None, displacement_min: int = None, displacement_max: int = None,
     fuel: str = None, search: str = None, sort: str = "newest", limit: int = 30, offset: int = 0
 ):
-    # Строго неактивные авто от 2020 года
+        # Строго неактивные авто от 2020 года
     query = "SELECT * FROM cars WHERE is_active = FALSE AND EXTRACT(YEAR FROM manufacture_date) >= 2020"
     params = []
     
@@ -218,7 +219,7 @@ async def get_history(
 
     if search:
         params.append(f"%{search.lower()}%")
-        query += f" AND (LOWER(title) LIKE ${len(params)} OR LOWER(manufacturer) LIKE ${len(params)} OR LOWER(model_group) LIKE ${len(params)})"
+        query += f" AND (LOWER(title) LIKE ${len(params)} OR LOWER(manufacturer) LIKE ${len(params)} OR LOWER(model_group) LIKE ${len(params)} OR LOWER(vin) LIKE ${len(params)})"
     if manufacturer: params.append(manufacturer); query += f" AND manufacturer ILIKE ${len(params)}"
     if model_group: params.append(model_group); query += f" AND model_group ILIKE ${len(params)}"
     if model: params.append(model); query += f" AND model ILIKE ${len(params)}"
@@ -234,6 +235,11 @@ async def get_history(
     if fuel: params.append(fuel); query += f" AND fuel = ${len(params)}"
     if displacement_min: params.append(displacement_min); query += f" AND displacement_cc >= ${len(params)}"
     if displacement_max: params.append(displacement_max); query += f" AND displacement_cc <= ${len(params)}"
+
+    count_query = query.replace("SELECT *", "SELECT COUNT(*)", 1)
+    
+    async with pool.acquire() as conn:
+        total_count = await conn.fetchval(count_query, *params)
 
     if sort == "price_asc": query += f" ORDER BY {usd_price} ASC, car_id DESC"
     elif sort == "price_desc": query += f" ORDER BY {usd_price} DESC, car_id DESC"
@@ -258,7 +264,11 @@ async def get_history(
         d['accidents'] = json.loads(d['accidents']) if d.get('accidents') else []
         result.append(d)
         
-    return result
+    # ВОЗВРАЩАЕМ И МАССИВ МАШИН, И ОБЩУЮ ЦИФРУ!
+    return {
+        "items": result,
+        "total": total_count
+    }
 
 
 # --- ЭНДПОИНТ КАТАЛОГА АВТО ---
@@ -369,7 +379,7 @@ async def get_cars(
         if car_id_match:
             car_id_val = int(car_id_match.group(1))
             
-            # Узнаем госномер этого ID с корейского сайта
+                        # Узнаем госномер этого ID с корейского сайта
             vno = await get_encar_vehicle_no(car_id_val)
             
             if vno:
@@ -382,7 +392,7 @@ async def get_cars(
                 query += f" AND car_id = ${len(params)}"
         else:
             params.append(f"%{search.lower()}%")
-            query += f" AND (LOWER(title) LIKE ${len(params)} OR LOWER(manufacturer) LIKE ${len(params)} OR LOWER(model_group) LIKE ${len(params)})"
+            query += f" AND (LOWER(title) LIKE ${len(params)} OR LOWER(manufacturer) LIKE ${len(params)} OR LOWER(model_group) LIKE ${len(params)} OR LOWER(vin) LIKE ${len(params)})"
     
     if manufacturer: params.append(manufacturer); query += f" AND manufacturer ILIKE ${len(params)}"
     if model_group: params.append(model_group); query += f" AND model_group ILIKE ${len(params)}"
@@ -411,6 +421,11 @@ async def get_cars(
     if displacement_min is not None: params.append(displacement_min); query += f" AND displacement_cc >= ${len(params)}"
     if displacement_max is not None: params.append(displacement_max); query += f" AND displacement_cc <= ${len(params)}"
     if hide_lease: query += " AND is_lease = FALSE" 
+    
+    count_query = query.replace("SELECT *", "SELECT COUNT(*)", 1)
+    
+    async with pool.acquire() as conn:
+        total_count = await conn.fetchval(count_query, *params)
 
     if sort == "price_asc":
         query += f" ORDER BY is_lease ASC, {turnkey_sql} ASC, car_id DESC"
@@ -444,7 +459,12 @@ async def get_cars(
         d['accidents'] = json.loads(d['accidents']) if d.get('accidents') else []
         result.append(d)
         
-    return result
+    # ВОЗВРАЩАЕМ И МАССИВ МАШИН, И ОБЩУЮ ЦИФРУ!
+    return {
+        "items": result,
+        "total": total_count
+    }
+
 
 
 # --- ЭНДПОИНТ КОНКРЕТНОГО АВТО (ОБЫЧНЫЙ API) ---
@@ -747,6 +767,9 @@ async def serve_seo_car(car_id: int):
     mileage_val = car.get("mileage")
     mileage = f"{mileage_val:,} км".replace(",", " ") if mileage_val else "Не указан"
     
+    vin = car.get("vin") or ""
+    vin_text = f" VIN: {vin}." if vin else ""
+    
     fuel_raw = car.get("fuel") or ""
     FUEL_RU_MAP = {
         'Gasoline': 'Бензин', 'Diesel': 'Дизель', 'Electric': 'Электро',
@@ -766,7 +789,7 @@ async def serve_seo_car(car_id: int):
 
     # 4. Формируем уникальные SEO-теги
     title = f"Купить {manufacturer} {model} {year} из Кореи | EncarBel"
-    desc = f"Заказать {manufacturer} {model} {year} г.в. Пробег: {mileage}. Топливо: {fuel}. Цена: {price_str}."
+    desc = f"Заказать {manufacturer} {model} {year} г.в. Пробег: {mileage}.{vin_text} Топливо: {fuel}. Цена: {price_str}."
     
     current_url = f"https://encarbel.by/car/{car_id}"
 
@@ -813,6 +836,7 @@ async def serve_seo_car(car_id: int):
                        <span>⚙️ Объем: {car.get('displacement_cc') or '-'} см³</span>
                        <span>⛽ Топливо: {fuel}</span>
                        <span>🛣 Пробег: {mileage}</span>
+                       {f'<span>🏷 VIN: {vin}</span>' if vin else ''}
                     </div>
                     <div style="margin-top: 25px; text-align: right;">
                         <span style="font-size: 22px; font-weight: 900; color: #dc2626;">{price_str}</span>

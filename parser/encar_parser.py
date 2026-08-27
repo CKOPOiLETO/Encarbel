@@ -64,6 +64,7 @@ HEADERS_DETAIL = {
 class CarData:
     car_id:           int
     vehicle_no:       str            = ""
+    vin:              str            = ""
     url:              str            = ""
     title:            str            = ""
     manufacturer:     str            = ""
@@ -106,6 +107,7 @@ class CarData:
 
 def parse_vehicle(data: dict, car: CarData, option_map: dict) -> tuple[Optional[int], str, str]:
     car.vehicle_no = data.get("vehicleNo") or ""
+    car.vin        = data.get("vin") or ""
     cat = data.get("category") or {}
 
     manufacturer_ko = cat.get("manufacturerName")     or ""
@@ -326,7 +328,7 @@ class EncarParser:
         choice_raw = await self._get(CHOICE_URL.format(vehicle_id=vid), headers=HEADERS_DETAIL)
         choice_items = parse_choice(choice_raw) if choice_raw and isinstance(choice_raw, list) else []
 
-        # 3. Страховая история
+                # 3. Страховая история
         if car.vehicle_no:
             insurance = await self._get(
                 RECORD_URL.format(id=vid, vehicle_no=car.vehicle_no), 
@@ -408,7 +410,7 @@ class EncarParser:
             "fuel", "transmission", "color", "body_type", "is_lease",
             "owner_changes", "my_accident_cnt", "other_accident_cnt",
             "my_accident_cost", "other_accident_cost", "total_loss_cnt", "flood_cnt",
-            "standard_options", "unique_options", "photos",
+            "vin", "standard_options", "unique_options", "photos",
         ]
         with open(path, "w", newline="", encoding="utf-8-sig") as f:
             w = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")

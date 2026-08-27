@@ -13,7 +13,8 @@ let catalogCache = {
   offset: 0,
   hasMore: true,
   scrollY: 0,
-  searchInput: ''
+  searchInput: '',
+  totalCount: 0
 };
 
 export default function Catalog() {
@@ -21,6 +22,7 @@ export default function Catalog() {
   const [cars, setCars] = useState(catalogCache.cars);
   const [offset, setOffset] = useState(catalogCache.offset);
   const [hasMore, setHasMore] = useState(catalogCache.hasMore);
+  const [totalCount, setTotalCount] = useState(catalogCache.totalCount || 0);
   const { make, model } = useParams();
   const navigate = useNavigate();   
   const location = useLocation(); 
@@ -132,10 +134,13 @@ export default function Catalog() {
     }
 
     setCars([]);
+    setTotalCount(0);
     setOffset(0);
     setHasMore(true);
     
+    
     // Сбрасываем глобальный кэш, так как пользователь сам поменял фильтр
+    catalogCache.totalCount = 0;
     catalogCache.cars = [];
     catalogCache.offset = 0;
     catalogCache.hasMore = true;
@@ -157,21 +162,15 @@ export default function Catalog() {
         const apiParams = { ...filters, limit: LIMIT, offset: offset };
         const { data } = await axios.get('/cars', { params: apiParams });
 
-        // setCars(prev => {
-        //   if (offset === 0) return data;
-        //   return [...prev, ...data];
-        // });
+        setTotalCount(data.total); // Сохраняем общую цифру с бэкенда
 
         setCars(prev => {
-          if (offset === 0) return data;
-        
-          const newUniqueCars = data.filter(
-            newCar => !prev.some(existingCar => existingCar.car_id === newCar.car_id)
-          );
-          
+          if (offset === 0) return data.items; // Берем .items
+          const newUniqueCars = data.items.filter(newCar => !prev.some(existingCar => existingCar.car_id === newCar.car_id));
           return [...prev, ...newUniqueCars];
         });
-        setHasMore(data.length === LIMIT);
+
+        setHasMore(data.items.length === LIMIT);
       } catch (error) {
         console.error("Ошибка загрузки:", error);
       }
@@ -255,15 +254,18 @@ export default function Catalog() {
   return (
     <div className="flex flex-col gap-6">
       
-      {/* КНОПКА МОБИЛЬНЫХ ФИЛЬТРОВ */}
-      <div className="lg:hidden w-full">
+      {/* КНОПКА МОБИЛЬНЫХ ФИЛЬТРОВ И СЧЕТЧИК (Для мобилок) */}
+      <div className="lg:hidden w-full flex gap-3">
         <button 
           onClick={() => setShowMobileFilters(!showMobileFilters)}
-          className="w-full bg-white border border-gray-200 rounded-2xl py-3.5 px-4 flex items-center justify-center gap-2 font-bold text-gray-800 shadow-sm active:bg-gray-50 transition-colors cursor-pointer"
+          className="flex-grow bg-white border border-gray-200 rounded-2xl py-3.5 px-4 flex items-center justify-center gap-2 font-bold text-gray-800 shadow-sm active:bg-gray-50 transition-colors"
         >
           <Filter size={18} className="text-red-600" />
-          {showMobileFilters ? 'Скрыть фильтры подбора' : 'Показать фильтры подбора'}
+          {showMobileFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
         </button>
+        <div className="bg-red-50 text-red-600 font-black text-sm px-5 rounded-2xl flex items-center justify-center border border-red-100 shadow-sm shrink-0">
+          {totalCount.toLocaleString('ru-RU')}
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -272,12 +274,18 @@ export default function Catalog() {
         </aside>
 
         <section className="w-full lg:w-3/4">
-          
           {/* Шапка каталога */}
           <div className="bg-white lg:p-4 rounded-2xl lg:shadow-sm lg:border lg:border-gray-100 flex flex-col lg:flex-row justify-between items-center mb-6 gap-4">
-            <h1 className="text-xl font-black text-gray-900 uppercase tracking-tight hidden lg:block">
-              Каталог предложений
-            </h1>
+            
+            {/* Заголовок + СЧЕТЧИК (Для ПК) */}
+            <div className="hidden lg:flex items-center gap-3 shrink-0">
+              <h1 className="text-xl font-black text-gray-900 uppercase tracking-tight">Каталог</h1>
+              {totalCount > 0 && (
+                <span className="bg-red-50 text-red-600 text-xs px-2.5 py-1 rounded-lg font-bold tracking-wider border border-red-100">
+                  {totalCount.toLocaleString('ru-RU')} авто
+                </span>
+              )}
+            </div>
             
             <div className="w-full flex flex-col md:flex-row gap-3 p-4 lg:p-0 border border-gray-200 lg:border-0 rounded-2xl bg-gray-50/50 lg:bg-transparent items-center">
               
