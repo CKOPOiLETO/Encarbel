@@ -24,11 +24,30 @@ log = logging.getLogger("encar")
 
 MANUFACTURER_MAP = {
     "현대": "Hyundai",
+    "미쯔비시": "Mitsubishi",
+    "미쯔오까": "Mitsuoka",
+    "다이하쯔": "Daihatsu",
+    "닷지": "Dodge",
+    "북기은상": "BAIC",
+
+    "동풍소콘": "DFSK",
+    "마이바흐": "Maybach",
+    "마쯔다": "Mazda",
+    "사브": "Saab",
+    "스마트": "Smart",
+    "스바루": "Subaru",
+    "스즈키": "Suzuki",
+    "신위안": "Shineray",
+    "애스턴마틴": "Aston Martin",
+    "지리": "Geely",
+    "험머": "Hummer",
     "기아": "Kia",
     "제네시스": "Genesis",
     "쉐보레(GM대우)": "Chevrolet (GM Daewoo)",
     "쉐보레": "Chevrolet",
-    "르노코리아(삼성)": "Renault Korea (Samsung)",
+    "르노코리아(삼성)": "Renault", 
+    "로터스": "Lotus",
+    "이네오스": "Ineos",
     "KG모빌리티(쌍용)": "KG Mobility (Ssangyong)",
     "BMW": "BMW",
     "벤츠": "Mercedes-Benz",
@@ -107,6 +126,9 @@ COLOR_MAP = {
     "분홍색": "Pink",
     "연두색": "Light Green",
     "금색": "Gold",
+    "갈색투톤": "Brown Two-Tone",
+    "금색투톤": "Gold Two-Tone",
+    "은회색": "Silver Gray",
     "담녹색": "Dark Green",
     "자주색": "Maroon",
     "은하색": "Galaxy Silver",
@@ -260,7 +282,21 @@ UNIQUE_OPTIONS_MAP = {
     "카니발": "Carnival",
     "봉고": "Bongo",
     "스타리아": "Staria",
-    
+
+    #── Другое ───────────────────────────────────────────────────────────
+    "넥쏘": "Nexo",
+    "싼타페": "Santa Fe",
+    "투싼": "Tucson",
+    "머스탱": "Mustang",
+    "렉스턴": "Rexton",
+    "램픽업": "Ram Pickup",
+    "기블리": "Ghibli",
+    "뱅퀴시": "Vanquish",
+    "아웃백": "Outback",
+    "포투": "Fortwo",
+    "챌린저": "Challenger",
+    "차저": "Charger",
+    "타": "Tasman",
 
 }
 
@@ -269,110 +305,110 @@ UNIQUE_OPTIONS_MAP = {
 # Машинный перевод плохо справляется с автомобильными брендовыми названиями.
 # Этот словарь покрывает самые частые опции — остальное уходит в LibreTranslate.
 
-UNIQUE_OPTIONS_MAP = {
-    # Крыши
-    "파노라마 선루프":          "Panoramic Sunroof",
-    "세이프티 선루프":           "Safety Sunroof",
-    "와이드 선루프":             "Wide Sunroof",
-    "솔라루프":                 "Solar Roof",
-    "비전루프":                  "Vision Roof",
+# UNIQUE_OPTIONS_MAP = {
+#     # Крыши
+#     "파노라마 선루프":          "Panoramic Sunroof",
+#     "세이프티 선루프":           "Safety Sunroof",
+#     "와이드 선루프":             "Wide Sunroof",
+#     "솔라루프":                 "Solar Roof",
+#     "비전루프":                  "Vision Roof",
 
-    # Пакеты помощи водителю
-    "드라이브 와이즈":           "Drive Wise (ADAS Package)",
-    "드라이빙 어시스턴스 패키지 Ⅰ":  "Driving Assistance Package I",
-    "드라이빙 어시스턴스 패키지 I":   "Driving Assistance Package I",
-    "드라이빙 어시스턴스 패키지 II":  "Driving Assistance Package II",
-    "드라이빙 어시스턴스 패키지 Ⅱ":  "Driving Assistance Package II",
-    "드라이빙 어시스턴스 패키지":     "Driving Assistance Package",
-    "주행 보조 시스템 팩":        "Driver Assistance System Pack",
+#     # Пакеты помощи водителю
+#     "드라이브 와이즈":           "Drive Wise (ADAS Package)",
+#     "드라이빙 어시스턴스 패키지 Ⅰ":  "Driving Assistance Package I",
+#     "드라이빙 어시스턴스 패키지 I":   "Driving Assistance Package I",
+#     "드라이빙 어시스턴스 패키지 II":  "Driving Assistance Package II",
+#     "드라이빙 어시스턴스 패키지 Ⅱ":  "Driving Assistance Package II",
+#     "드라이빙 어시스턴스 패키지":     "Driving Assistance Package",
+#     "주행 보조 시스템 팩":        "Driver Assistance System Pack",
 
-    # Удобства
-    "컨비니언스 패키지":          "Convenience Package",
-    "컴포트 패키지":             "Comfort Package",
-    "컴포트":                   "Comfort Package",
-    "2열 컴포트 패키지 I":        "2nd Row Comfort Package I",
-    "2열 컴포트 패키지 II":       "2nd Row Comfort Package II",
-    "뒷좌석 VIP 패키지":          "Rear VIP Package",
-    "딥 컨트롤 패키지":           "Deep Control Package",
+#     # Удобства
+#     "컨비니언스 패키지":          "Convenience Package",
+#     "컴포트 패키지":             "Comfort Package",
+#     "컴포트":                   "Comfort Package",
+#     "2열 컴포트 패키지 I":        "2nd Row Comfort Package I",
+#     "2열 컴포트 패키지 II":       "2nd Row Comfort Package II",
+#     "뒷좌석 VIP 패키지":          "Rear VIP Package",
+#     "딥 컨트롤 패키지":           "Deep Control Package",
 
-    # Технологии / HUD / навигация
-    "헤드업 디스플레이":          "Head-Up Display (HUD)",
-    "하이테크 패키지":            "Hi-Tech Package",
-    "빌트인 캠 패키지":           "Built-in Cam Package",
-    "스마트 커넥트":             "Smart Connect",
-    "8인치 스마트 i 내비게이션":   "8-inch Smart i Navigation",
-    "9인치 HD 스마트 미러링 내비게이션": "9-inch HD Smart Mirroring Navigation",
-    "8인치 스마트 미러링 패키지":   "8-inch Smart Mirroring Package",
-    "7인치 멀티 내비게이션":       "7-inch Multi Navigation",
+#     # Технологии / HUD / навигация
+#     "헤드업 디스플레이":          "Head-Up Display (HUD)",
+#     "하이테크 패키지":            "Hi-Tech Package",
+#     "빌트인 캠 패키지":           "Built-in Cam Package",
+#     "스마트 커넥트":             "Smart Connect",
+#     "8인치 스마트 i 내비게이션":   "8-inch Smart i Navigation",
+#     "9인치 HD 스마트 미러링 내비게이션": "9-inch HD Smart Mirroring Navigation",
+#     "8인치 스마트 미러링 패키지":   "8-inch Smart Mirroring Package",
+#     "7인치 멀티 내비게이션":       "7-inch Multi Navigation",
 
-    # Звук
-    "렉시콘 사운드 패키지":        "Lexicon Sound Package",
-    "KRELL 프리미엄 사운드":       "KRELL Premium Sound",
-    "뱅앤올룹슨 사운드 패키지":    "Bang & Olufsen Sound Package",
+#     # Звук
+#     "렉시콘 사운드 패키지":        "Lexicon Sound Package",
+#     "KRELL 프리미엄 사운드":       "KRELL Premium Sound",
+#     "뱅앤올룹슨 사운드 패키지":    "Bang & Olufsen Sound Package",
 
-    # Подвеска
-    "프리뷰 전자제어 서스펜션":    "Preview Electronic Control Suspension",
-    "멀티 챔버 에어 서스펜션":     "Multi-Chamber Air Suspension",
-    "전자제어 서스펜션":          "Electronic Control Suspension (ECS)",
+#     # Подвеска
+#     "프리뷰 전자제어 서스펜션":    "Preview Electronic Control Suspension",
+#     "멀티 챔버 에어 서스펜션":     "Multi-Chamber Air Suspension",
+#     "전자제어 서스펜션":          "Electronic Control Suspension (ECS)",
 
-    # Дизайн / интерьер
-    "시그니쳐 디자인 셀렉션 I":    "Signature Design Selection I",
-    "시그니쳐 디자인 셀렉션 II":   "Signature Design Selection II",
-    "스포츠 패키지":             "Sports Package",
-    "파퓰러 패키지":             "Popular Package",
-    "파퓰러 컬렉션 패키지":       "Popular Collection Package",
-    "투톤 익스테리어 패키지":      "Two-Tone Exterior Package",
-    "K-LOOK 스포티 인테리어 팩":   "K-LOOK Sporty Interior Pack",
+#     # Дизайн / интерьер
+#     "시그니쳐 디자인 셀렉션 I":    "Signature Design Selection I",
+#     "시그니쳐 디자인 셀렉션 II":   "Signature Design Selection II",
+#     "스포츠 패키지":             "Sports Package",
+#     "파퓰러 패키지":             "Popular Package",
+#     "파퓰러 컬렉션 패키지":       "Popular Collection Package",
+#     "투톤 익스테리어 패키지":      "Two-Tone Exterior Package",
+#     "K-LOOK 스포티 인테리어 팩":   "K-LOOK Sporty Interior Pack",
 
-    # Цвета / колёса
-    "스노우 화이트 펄 (SWP)":     "Snow White Pearl (SWP)",
-    "스노우 화이트 펄":           "Snow White Pearl",
-    "클라우드 펄 외장 컬러":       "Cloud Pearl Exterior Color",
-    "White Pearl(백진주색)":      "White Pearl",
-    "백진주색":                  "White Pearl",
-    "14인치 알로이 휠":           "14-inch Alloy Wheels",
+#     # Цвета / колёса
+#     "스노우 화이트 펄 (SWP)":     "Snow White Pearl (SWP)",
+#     "스노우 화이트 펄":           "Snow White Pearl",
+#     "클라우드 펄 외장 컬러":       "Cloud Pearl Exterior Color",
+#     "White Pearl(백진주색)":      "White Pearl",
+#     "백진주색":                  "White Pearl",
+#     "14인치 알로이 휠":           "14-inch Alloy Wheels",
 
-    # Сиденья / мониторы
-    "프리미엄 나파(NAPA) 가죽시트": "Premium Nappa Leather Seats",
-    "천연 가죽시트":             "Natural Leather Seats",
-    "뒷좌석 듀얼 모니터":         "Rear Dual Monitor",
+#     # Сиденья / мониторы
+#     "프리미엄 나파(NAPA) 가죽시트": "Premium Nappa Leather Seats",
+#     "천연 가죽시트":             "Natural Leather Seats",
+#     "뒷좌석 듀얼 모니터":         "Rear Dual Monitor",
 
-    # Безопасность
-    "커튼 에어백":               "Curtain Airbag",
-    "사이드 & 커튼 에어백":       "Side & Curtain Airbag",
-    "운전석 무릎 에어백":         "Driver Knee Airbag",
-    "ESP(전동식 파워스티어링)":    "ESP (Electronic Power Steering)",
-    "ABS":                      "ABS",
+#     # Безопасность
+#     "커튼 에어백":               "Curtain Airbag",
+#     "사이드 & 커튼 에어백":       "Side & Curtain Airbag",
+#     "운전석 무릎 에어백":         "Driver Knee Airbag",
+#     "ESP(전동식 파워스티어링)":    "ESP (Electronic Power Steering)",
+#     "ABS":                      "ABS",
 
-    # Трансмиссия / прочее
-    "4단 자동변속기 & 후드 인슐레이션": "4-Speed Automatic & Hood Insulation",
-    "7인승":                     "7-Seat Configuration",
-    "6인승":                     "6-Seat Configuration",
-    "핸즈프리":                  "Hands-Free",
-    "스타일":                    "Style Package",
-    "무선시동 리모컨키(A/T 선택시)": "Remote Start Key (A/T only)",
-    "LED 도어 스팟 램프":          "LED Door Spot Lamp",
-    "매직 테일게이트 + 사각지대 경보 시스템(BSW)": "Magic Tailgate + Blind Spot Warning (BSW)",
-    "ETCS(하이패스) & ECM 룸미러": "ETCS (Hi-Pass) & ECM Mirror",
-    "하이패스 시스템(ETCS + ECM 룸미러)": "Hi-Pass System (ETCS + ECM Mirror)",
-    "에어컨 & 콤비필터":          "Air Conditioner & Combi Filter",
-    "FULL LED 헤드램프":          "Full LED Headlamps",
+#     # Трансмиссия / прочее
+#     "4단 자동변속기 & 후드 인슐레이션": "4-Speed Automatic & Hood Insulation",
+#     "7인승":                     "7-Seat Configuration",
+#     "6인승":                     "6-Seat Configuration",
+#     "핸즈프리":                  "Hands-Free",
+#     "스타일":                    "Style Package",
+#     "무선시동 리모컨키(A/T 선택시)": "Remote Start Key (A/T only)",
+#     "LED 도어 스팟 램프":          "LED Door Spot Lamp",
+#     "매직 테일게이트 + 사각지대 경보 시스템(BSW)": "Magic Tailgate + Blind Spot Warning (BSW)",
+#     "ETCS(하이패스) & ECM 룸미러": "ETCS (Hi-Pass) & ECM Mirror",
+#     "하이패스 시스템(ETCS + ECM 룸미러)": "Hi-Pass System (ETCS + ECM Mirror)",
+#     "에어컨 & 콤비필터":          "Air Conditioner & Combi Filter",
+#     "FULL LED 헤드램프":          "Full LED Headlamps",
     
-    ######################################################
-    "싼타페": "Santa Fe",
-    "쏘렌토": "Sorento",
-    "스포티지": "Sportage",
-    "그랜저": "Grandeur",
-    "아반떼": "Avante (Elantra)",
-    "코나": "Kona",
-    "팰리세이드": "Palisade",
-    "렉스턴": "Rexton",
-    "코란도": "Korando",
-    "티볼리": "Tivoli",
-    "카니발": "Carnival",
-    "봉고": "Bongo",
-    "스타리아": "Staria",
-}
+#     ######################################################
+#     "싼타페": "Santa Fe",
+#     "쏘렌토": "Sorento",
+#     "스포티지": "Sportage",
+#     "그랜저": "Grandeur",
+#     "아반떼": "Avante (Elantra)",
+#     "코나": "Kona",
+#     "팰리세이드": "Palisade",
+#     "렉스턴": "Rexton",
+#     "코란도": "Korando",
+#     "티볼리": "Tivoli",
+#     "카니발": "Carnival",
+#     "봉고": "Bongo",
+#     "스타리아": "Staria",
+# }
 
 
 def translate_option(name: str) -> str | None:
@@ -454,6 +490,51 @@ class Translator:
 
         return self._available
 
+    # async def translate(self, text: str) -> str:
+    #     """Переводим одну строку ko→en. Результат кэшируется."""
+    #     if not text or not text.strip():
+    #         return text
+
+    #     # Если текст уже латиница — не переводим
+    #     if all(ord(c) < 128 for c in text.replace(" ", "").replace("-", "")):
+    #         return text
+
+    #     # Сначала словарь — точный и мгновенный
+    #     if text in UNIQUE_OPTIONS_MAP:
+    #         return UNIQUE_OPTIONS_MAP[text]
+
+    #     # Из кэша
+    #     if text in self._cache:
+    #         return self._cache[text]
+
+    #     # Если сервер недоступен — возвращаем оригинал
+    #     if not self._available:
+    #         return text
+
+    #     try:
+    #         async with self._session.post(
+    #             self._url,
+    #             json={"q": text, "source": "ko", "target": "en", "format": "text"},
+    #             timeout=aiohttp.ClientTimeout(total=10),
+    #         ) as r:
+    #             if r.status == 200:
+    #                 data  = await r.json(content_type=None)
+    #                 translated = data.get("translatedText") or text
+    #             else:
+    #                 log.debug(f"LibreTranslate HTTP {r.status} для: {text}")
+    #                 return text
+    #     except Exception as e:
+    #         log.debug(f"LibreTranslate ошибка: {e}")
+    #         return text
+
+    #     async with self._lock:
+    #         self._cache[text] = translated
+    #         self._save_cache()
+
+    #     return translated
+
+
+
     async def translate(self, text: str) -> str:
         """Переводим одну строку ko→en. Результат кэшируется."""
         if not text or not text.strip():
@@ -463,11 +544,150 @@ class Translator:
         if all(ord(c) < 128 for c in text.replace(" ", "").replace("-", "")):
             return text
 
-        # Сначала словарь — точный и мгновенный
-        if text in UNIQUE_OPTIONS_MAP:
-            return UNIQUE_OPTIONS_MAP[text]
+        # 1. Точное совпадение из словаря
+        if text in UNIQUE_OPTION_MAP:
+            return UNIQUE_OPTION_MAP[text]
 
-        # Из кэша
+        # 2. УМНАЯ ПРЕДОБРАБОТКА (Частичная замена)
+        # Если корейское слово есть внутри длинной строки - заменяем его до нейросети!
+        fixes = {
+            "그랜저": "Grandeur",
+            "쏘나타": "Sonata",
+            "아반떼": "Avante",
+            "투싼": "Tucson",
+            "싼타페": "Santa Fe",
+            "스타리아": "Staria",
+            "스타렉스": "Starex",
+            "캐스퍼": "Casper",
+            "팰리세이드": "Palisade",
+            "넥스트": "Next",
+            "제네시스": "Genesis",
+            "Kia 타 ": "Kia Tasman ",  
+            " 콰트로 ": " Quattro ",
+            "기아 타 ": "Kia Tasman ",  
+            "Kia 타 ": "Kia Tasman ", 
+            "베라크루즈": "Veracruz",
+            "갤로퍼": "Galloper",
+            "에쿠스": "Equus",
+            "티뷰론": "Tiburon",
+            "테라칸": "Terracan",
+            "맥스크루즈": "Maxcruz",
+            "스포티지": "Sportage",
+            "쏘렌토": "Sorento",
+            "카니발": "Carnival",
+            "모하비": "Mohave",
+            "스토닉": "Stonic",
+            "레이": "Ray",
+            "니로": "Niro",
+            "모닝": "Morning",
+            "셀토스": "Seltos",
+            "프라이드": "Pride",
+            "포르테": "Forte",
+            "로체": "Lotze",
+            "오피러스": "Opirus",
+            "스펙트라": "Spectra",
+            "스팅어": "Stinger",
+            "스파크": "Spark",
+            "말리부": "Malibu",
+            "올란도": "Orlando",
+            "캡티바": "Captiva",
+            "크루즈": "Cruze",
+            "트랙스": "Trax",
+            "트래버스": "Traverse",
+            "트레일블레이저": "Trailblazer",
+            "이쿼녹스": "Equinox",
+            "알페온": "Alpheon",
+            "마티즈": "Matiz",
+            "코란도": "Korando",
+            "티볼리": "Tivoli",
+            "렉스턴": "Rexton",
+            "체어맨": "Chairman",
+            "액티언": "Actyon",
+            "로디우스": "Rodius",
+            "토레스": "Torres",
+            "머스탱": "Mustang",
+            "익스플로러": "Explorer",
+            "레니게이드": "Renegade",
+            "랭글러": "Wrangler",
+            "체로키": "Cherokee",
+            "패트리어트": "Patriot",
+            "오딧세이": "Odyssey",
+            "어코드": "Accord",
+            "파일럿": "Pilot",
+            "알티마": "Altima",
+            "맥시마": "Maxima",
+            "무라노": "Murano",
+            "패스파인더": "Pathfinder",
+            "큐브": "Cube",
+            "프리우스": "Prius",
+            "캠리": "Camry",
+            "아발론": "Avalon",
+            "시에나": "Sienna",
+            "티구안": "Tiguan",
+            "투아렉": "Touareg",
+            "파사트": "Passat",
+            "시로코": "Scirocco",
+            "제타": "Jetta",
+            "아테온": "Arteon",
+            "골프": "Golf",
+            "폴로": "Polo",
+            "비틀": "Beetle",
+            "멀티밴": "Multivan",
+            "쿠퍼": "Cooper",
+            "기아 타 ": "Kia Tasman ",
+            " 타 ": " Tasman ",
+            "뉴 기아": "New Kia",
+            "뉴 레이": "New Ray",
+            "기아 레이": "Kia Ray",
+            "클럽맨": "Clubman",
+            "컨트리맨": "Countryman",
+            "페이스맨": "Paceman",
+            "파나메라": "Panamera",
+            "카이엔": "Cayenne",
+            "마칸": "Macan",
+            "타이칸": "Taycan",
+            "우라칸": "Huracan",
+            "아벤타도르": "Aventador",
+            "우루스": "Urus",
+            "그란투리스모": "GranTurismo",
+            "북기은상": "BAIC",
+            "그레칼레": "Grecale",
+            "르반떼": "Levante",
+            "콰트로포르테": "Quattroporte",
+            "디스커버리": "Discovery",
+            "디펜더": "Defender",
+            "벨라": "Velar",
+            "에비에이터": "Aviator",
+            "코세어": "Corsair",
+            "리릭": "Lyriq",
+            "세빌": "Seville",
+            "벤테이가": "Bentayga",
+            "뮬산": "Mulsanne",
+            "플라잉스퍼": "Flying Spur",
+            "고스트": "Ghost",
+            "레이스": "Wraith",
+            "던": "Dawn",
+            "마스터": "Master",
+            "조에": "Zoe",
+            "아르카나": "Arkana",
+            "연락처": "",
+            "콰트로": "Quattro",
+            "시그니처": "Signature",
+            "컨버터블": "Convertible",
+            "리차지": "Recharge",
+            "크로스컨트리": "Cross Country",
+        }
+        
+        for ko_word, en_word in fixes.items():
+            if ko_word in text:
+                text = text.replace(ko_word, en_word).strip()
+                
+        # Если после нашей автозамены в строке больше не осталось корейских иероглифов,
+        # нам даже не нужно дергать LibreTranslate! Сразу отдаем готовый текст.
+        if all(ord(c) < 128 for c in text.replace(" ", "").replace("-", "")):
+            return text
+
+        # 3. Из кэша LibreTranslate
         if text in self._cache:
             return self._cache[text]
 
@@ -475,6 +695,7 @@ class Translator:
         if not self._available:
             return text
 
+        # 4. Запрос к LibreTranslate
         try:
             async with self._session.post(
                 self._url,
@@ -496,6 +717,7 @@ class Translator:
             self._save_cache()
 
         return translated
+
 
     async def translate_list(self, items: list[str]) -> list[str]:
         """
@@ -608,6 +830,26 @@ UNIQUE_OPTION_MAP = {
     "14인치 알로이 휠": "14-inch Alloy Wheels",
     "에어컨 & 콤비필터": "Air Conditioning & Combination Filter",
     "K-LOOK 스포티 인테리어 팩": "K-Look Sporty Interior Pack",
+    # ── OTHER ──────────────────────────────────────────────────────────────────
+    "싼타페 TM": "Santa Fe TM",
+    "싼타페 CM": "Santa Fe CM",
+    "싼타페 DM": "Santa Fe DM",
+    "싼타페 더 프라임": "Santa Fe The Prime",
+    "더 뉴 싼타페": "The New Santa Fe",
+    "디 올 뉴 싼타페": "The All New Santa Fe",
+    "싼타페": "Santa Fe",
+    "싼타페 (MX5)": "Santa Fe (MX5)",
+    "디 올 뉴 싼타페 (MX5)": "The All New Santa Fe (MX5)",
+    "싼타페 더 프라임 연락처": "Santa Fe The Prime",
+    "싼타페 연락처": "Santa Fe",
+    "타": "Tasman",
+    "넥쏘": "Nexo",
+    "램픽업": "Ram Pickup",
+    "콰트로": "Quattro",
+    
+    
+
+
 }
 
 

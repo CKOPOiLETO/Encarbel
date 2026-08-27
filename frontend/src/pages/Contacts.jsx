@@ -1,8 +1,8 @@
 import React from 'react';
 import { MapPin, Phone, Mail, Clock, ExternalLink } from 'lucide-react';
 import bgImage from '../assets/contacts_bg.webp';
-import tg_logo from '../assets/tg_logo.PNG'; 
-import inst_logo from '../assets/instagram.PNG'; 
+import tg_logo from '../assets/tg_logo.png'; 
+import inst_logo from '../assets/instagram.png'; 
 
 
 export default function Contacts() {
@@ -11,8 +11,8 @@ export default function Contacts() {
           title: "Салон на Победителей",
           address: "г. Минск, пр-т. Победителей 102",
           // Универсальная ссылка Яндекса через поиск (лучше всего для мобильных приложений)
-          mapLink: "https://yandex.by/maps/?text=Минск+Победителей+102",
-          googleLink: "https://www.google.com/maps/search/?api=1&query=Минск+Победителей+102",
+          mapLink: "https://yandex.by/maps/?text=Минск+Победителей+102+autocapital",
+          googleLink: "https://www.google.com/maps/search/?api=1&query=Минск+Победителей+102+autocapital",
           schedule: [
             { days: "Пн - Пт", time: "9:00 - 20:00" },
             { days: "Сб - Вс", time: "10:00 - 20:00" }
@@ -107,13 +107,13 @@ export default function Contacts() {
               <h3 className="text-3xl font-black uppercase mb-10 tracking-tighter">Связаться</h3>
               
               <div className="space-y-10">
-                <a href="tel:+375296892020" className="flex items-center gap-5 group">
+                <a href="tel:+375445307131" className="flex items-center gap-5 group">
                   <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-red-600 shadow-lg group-hover:scale-110 transition-transform">
                     <Phone size={24} fill="currentColor" />
                   </div>
                   <div>
                     <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Многоканальный</div>
-                    <div className="text-xl font-black">+375 (29) 689 20 20</div>
+                    <div className="text-xl font-black">+375 (44) 530 71 73</div>
                   </div>
                 </a>
 
@@ -134,14 +134,25 @@ export default function Contacts() {
               <div className="flex justify-center gap-6">
                 
                 {/* Instagram */}
-                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white cursor-pointer border border-white/10 font-black italic shadow-lg transition-transform duration-200 ease-in-out hover:scale-105 overflow-hidden">
+                <a 
+                  href="https://www.instagram.com/autocapital.by?igsh=MWl4OXd0ZmxvZHkyYw==" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white cursor-pointer border border-white/10 font-black italic shadow-lg transition-transform duration-200 ease-in-out hover:scale-105 overflow-hidden"
+                >
                   <img src={inst_logo} alt="instagram logo" className="w-full h-full object-cover" />
-                </div>
-                
+                </a>
+
                 {/* Telegram */}
-                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white cursor-pointer border border-white/10 font-black italic shadow-lg transition-transform duration-200 ease-in-out hover:scale-105 overflow-hidden">
+                <a 
+                  href="https://t.me/EncarBel" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white cursor-pointer border border-white/10 font-black italic shadow-lg transition-transform duration-200 ease-in-out hover:scale-105 overflow-hidden"
+                >
                   <img src={tg_logo} alt="tg logo" className="w-full h-full p-3 object-contain" />
-                </div>
+                </a>
+
 
               </div>
             </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { BelarusCustomsCalculator } from '../utils/calculator';
+import { Info } from 'lucide-react'; // <--- Импортировали иконку Info
 
 export default function CalculatorPage() {
     const [rates, setRates] = useState(null);
@@ -25,7 +26,7 @@ export default function CalculatorPage() {
             .catch(err => console.error("Ошибка загрузки курсов:", err));
     }, []);
 
-    // 1. Считаем базовые значения (Пошлина, Утиль, Сбор) через класс
+    // 1. Считаем базовые значения через класс
     const result = useMemo(() => calculator.calculate(formData), [formData, calculator]);
 
     // 2. Считаем ИТОГО (только если курсы загрузились)
@@ -47,15 +48,21 @@ export default function CalculatorPage() {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
+        
+        let finalValue = value;
+        // Отрезаем ведущие нули (если пользователь вводит 056756, останется 56756)
+        if (type === 'number' && value !== '') {
+            finalValue = value.replace(/^0+(?=\d)/, '');
+        }
+
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : (type === 'number' ? Number(value) : value)
+            [name]: type === 'checkbox' ? checked : (type === 'number' ? (finalValue === '' ? '' : Number(finalValue)) : finalValue)
         }));
     };
 
     return (
         <div className="max-w-4xl mx-auto py-12 px-4 mb-20">
-            {/* НОВЫЕ ЗАГОЛОВКИ */}
             <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Таможенный калькулятор</h1>
             <p className="text-gray-500 mb-8 font-medium">Расчёт всех таможенных пошлин и комиссий для автомобилей, ввезённых в Беларусь</p>
 
@@ -65,7 +72,7 @@ export default function CalculatorPage() {
                 <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6">
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Тип лица</label>
-                        <select name="personType" value={formData.personType} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-500">
+                        <select name="personType" value={formData.personType} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-600">
                             <option value="physical">Физическое лицо</option>
                             <option value="legal">Юридическое лицо</option>
                         </select>
@@ -73,7 +80,7 @@ export default function CalculatorPage() {
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Тип двигателя</label>
-                        <select name="engineType" value={formData.engineType} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-500">
+                        <select name="engineType" value={formData.engineType} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-600">
                             <option value="fuel">ДВС (Бензин/Дизель)</option>
                             <option value="electric">Электромобиль</option>
                         </select>
@@ -81,7 +88,7 @@ export default function CalculatorPage() {
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Возраст автомобиля</label>
-                        <select name="ageCategory" value={formData.ageCategory} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-500">
+                        <select name="ageCategory" value={formData.ageCategory} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-600">
                             <option value="new">До 3-х лет</option>
                             <option value="medium">От 3-х до 5 лет</option>
                             <option value="old">Более 5 лет</option>
@@ -90,13 +97,13 @@ export default function CalculatorPage() {
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Стоимость авто по инвойсу (€)</label>
-                        <input type="number" min="0" name="priceEur" value={formData.priceEur} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-500" />
+                        <input type="number" min="0" name="priceEur" value={formData.priceEur} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-600" />
                     </div>
 
                     {formData.engineType !== 'electric' && (
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Объем двигателя (см³)</label>
-                            <input type="number" min="0" name="engineVolumeCm3" value={formData.engineVolumeCm3} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-500" placeholder="Например: 1600" />
+                            <input type="number" min="0" name="engineVolumeCm3" value={formData.engineVolumeCm3} onChange={handleChange} className="w-full border-gray-300 border rounded-xl p-3 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-red-600" placeholder="Например: 1600" />
                         </div>
                     )}
 
@@ -108,63 +115,88 @@ export default function CalculatorPage() {
                     )}
                 </div>
 
-                {/* ПРАВАЯ КОЛОНКА (Смета) */}
-                <div>
-                    <div className="bg-gray-900 text-white p-8 rounded-2xl shadow-xl sticky top-24">
-                        <h2 className="text-xl font-bold text-gray-400 mb-4 uppercase tracking-wider text-center">Итого таможня и сборы:</h2>
-                        
-                        {rates && totals ? (
-                            <>
-                                <div className="text-center mb-8">
-                                    <div className="text-5xl font-black mb-2">{totals.totalByn.toLocaleString('ru-RU')} BYN</div>
-                                    <div className="text-xl font-medium text-gray-400">≈ {totals.totalUsd.toLocaleString('ru-RU')} $</div>
-                                </div>
-                                
-                                <div className="space-y-4 text-sm font-medium">
-                                    <div className="flex justify-between border-b border-gray-700 pb-3">
-                                        <span className="text-gray-400">Таможенная пошлина:</span>
-                                        <span className="font-bold">{result.customsDuty.toLocaleString('ru-RU')} €</span>
-                                    </div>
-                                    <div className="flex justify-between border-b border-gray-700 pb-3">
-                                        <span className="text-gray-400">Таможенный сбор:</span>
-                                        <span className="font-bold">{result.customsFee} €</span>
-                                    </div>
-                                    <div className="flex justify-between border-b border-gray-700 pb-3">
-                                        <span className="text-gray-400">Утильсбор:</span>
-                                        <span className="font-bold">{result.utilizationFee} BYN</span>
-                                    </div>
-                                    <div className="flex justify-between border-b border-gray-700 pb-3">
-                                        <span className="text-gray-400">Услуги декларанта:</span>
-                                        <span className="font-bold">≈ {DECLARANT_BYN} BYN</span>
-                                    </div>
-                                    <div className="flex justify-between border-b border-gray-700 pb-3">
-                                        <span className="text-gray-400">СВХ и ЭПТС:</span>
-                                        <span className="font-bold">≈ {SVH_BYN} BYN</span>
-                                    </div>
-                                </div>
-
-                                {formData.isPrivileged && formData.personType === 'physical' && (
-                                    <div className="mt-6 bg-red-600/20 text-red-400 p-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider border border-red-500/30">
-                                        Скидка 50% применена
-                                    </div>
-                                )}
-                                {formData.engineType === 'electric' && formData.personType === 'physical' && (
-                                    <div className="mt-6 bg-green-600/20 text-green-400 p-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider border border-green-500/30">
-                                        Пошлина 0% (Электромобиль)
-                                    </div>
-                                )}
-                                
-                                <div className="mt-6 text-[10px] text-gray-500 text-center uppercase tracking-widest">
-                                    Курс: 1 EUR = {rates.EUR.toFixed(4)} BYN | 1 USD = {rates.USD.toFixed(4)} BYN
-                                </div>
-                            </>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-10">
-                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-500 mb-4"></div>
-                                <span className="text-gray-500">Загрузка курсов НБРБ...</span>
+                {/* ПРАВАЯ КОЛОНКА (Смета или Заглушка для юрлиц) */}
+                <div className="w-full">
+                    {formData.personType === 'legal' ? (
+                        /* БЛОК ДЛЯ ЮРИДИЧЕСКИХ ЛИЦ */
+                        <div className="bg-white rounded-2xl shadow-xl border-2 border-red-100 p-8 sticky top-24 text-center">
+                            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Info size={32} />
                             </div>
-                        )}
-                    </div>
+                            <h2 className="text-2xl font-black text-gray-900 mb-2 uppercase tracking-tight">Юридическое лицо</h2>
+                            <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+                                Расчёт таможенных пошлин, комиссий и сборов для юридических лиц осуществляется индивидуально.
+                            </p>
+                            <div className="bg-red-50 text-red-800 p-4 rounded-xl font-bold mb-8 text-sm">
+                                Оставьте запрос нашему менеджеру
+                            </div>
+                            <button 
+                                onClick={() => window.dispatchEvent(new CustomEvent('open-lead-modal', { 
+                                    detail: { carName: 'Запрос на расчет для Юр. Лица', carId: '' } 
+                                }))}
+                                className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-bold uppercase shadow-lg shadow-red-600/30 transition-transform active:scale-[0.98]"
+                            >
+                                Получить расчет
+                            </button>
+                        </div>
+                    ) : (
+                        /* БЛОК СМЕТЫ ДЛЯ ФИЗЛИЦ (Стандарт) */
+                        <div className="bg-gray-900 text-white p-8 rounded-2xl shadow-xl sticky top-24">
+                            <h2 className="text-xl font-bold text-gray-400 mb-4 uppercase tracking-wider text-center">Итого таможня и сборы:</h2>
+                            
+                            {rates && totals ? (
+                                <>
+                                    <div className="text-center mb-8">
+                                        <div className="text-5xl font-black mb-2">{totals.totalByn.toLocaleString('ru-RU')} BYN</div>
+                                        <div className="text-xl font-medium text-gray-400">≈ {totals.totalUsd.toLocaleString('ru-RU')} $</div>
+                                    </div>
+                                    
+                                    <div className="space-y-4 text-sm font-medium">
+                                        <div className="flex justify-between border-b border-gray-700 pb-3">
+                                            <span className="text-gray-400">Таможенная пошлина:</span>
+                                            <span className="font-bold">{result.customsDuty.toLocaleString('ru-RU')} €</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-gray-700 pb-3">
+                                            <span className="text-gray-400">Таможенный сбор:</span>
+                                            <span className="font-bold">{result.customsFee} €</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-gray-700 pb-3">
+                                            <span className="text-gray-400">Утильсбор:</span>
+                                            <span className="font-bold">{result.utilizationFee} BYN</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-gray-700 pb-3">
+                                            <span className="text-gray-400">Услуги декларанта:</span>
+                                            <span className="font-bold">≈ {DECLARANT_BYN} BYN</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-gray-700 pb-3">
+                                            <span className="text-gray-400">СВХ и ЭПТС:</span>
+                                            <span className="font-bold">≈ {SVH_BYN} BYN</span>
+                                        </div>
+                                    </div>
+
+                                    {formData.isPrivileged && formData.personType === 'physical' && (
+                                        <div className="mt-6 bg-blue-600/20 text-blue-400 p-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider border border-blue-500/30">
+                                            Скидка 50% применена
+                                        </div>
+                                    )}
+                                    {formData.engineType === 'electric' && formData.personType === 'physical' && (
+                                        <div className="mt-6 bg-green-600/20 text-green-400 p-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider border border-green-500/30">
+                                            Пошлина 0% (Электромобиль)
+                                        </div>
+                                    )}
+                                    
+                                    <div className="mt-6 text-[10px] text-gray-500 text-center uppercase tracking-widest">
+                                        Курс: 1 EUR = {rates.EUR.toFixed(4)} BYN | 1 USD = {rates.USD.toFixed(4)} BYN
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-10">
+                                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-500 mb-4"></div>
+                                    <span className="text-gray-500">Загрузка курсов НБРБ...</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
             </div>

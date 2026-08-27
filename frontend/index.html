@@ -2,21 +2,54 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/src/assets/logo_rmbg.PNG" />
+    <link rel="icon" type="image/png" href="/logo.PNG" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
+    <!-- Базовые SEO теги -->
     <title>Авто из Южной Кореи в Беларусь | EncarBel</title>
     <meta name="description" content="Подбор, покупка и доставка автомобилей из Южной Кореи в Минск. Честные цены под ключ, проверка истории, льготная растаможка (указ 140)." />
-    <!-- Оставили "encar" и "encarbel" по одному разу -->
-    <meta name="keywords" content="авто из кореи, encar, купить авто в минске, пригон авто, растаможка авто рб, encarbel" />
+    <meta name="keywords" content="энкар, енкар, encar на русском языке, авто из кореи, encar, купить авто в минске, пригон авто, растаможка авто рб, encarbel" />
     
     <!-- Open Graph (для красивых ссылок в Telegram/Viber) -->
     <meta property="og:title" content="Авто из Южной Кореи под ключ | EncarBel" />
     <meta property="og:description" content="Каталог автомобилей напрямую из Кореи. Честные цены, прозрачная история." />
-    <meta property="og:image" content="/logo.PNG" /> <!-- Добавил логотип для превью в мессенджерах -->
     <meta property="og:type" content="website" />
+
+    <!-- 1. ВЕРИФИКАЦИЯ GOOGLE И YANDEX -->
+    <meta name="yandex-verification" content="0b121a591b9004cd" />
+    <meta name="google-site-verification" content="AYEuP0-r1TcYaIfRHtESyZoyP8ItLzBUtweTOedSLvg" />
+
+    <!-- Скрипт колл-трекинга Call-tracking.by -->
+    <script async src="//app.call-tracking.by/scripts/phones.js?af2603b4-045c-4621-bc07-b6954e5e6e87"></script>
+
+    <!-- 2. GOOGLE TAG MANAGER -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-KGPXC5VT');</script>
+    <!-- End Google Tag Manager -->
+
+    <!-- 3. YANDEX METRICA (Только сам скрипт) -->
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=111755211', 'ym');
+
+        ym(111755211, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+    </script>
   </head>
   <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KGPXC5VT"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+    <!-- Yandex.Metrika (noscript) ПЕРЕНЕСЕН СЮДА -->
+    <noscript><div><img src="https://mc.yandex.ru/watch/111755211" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

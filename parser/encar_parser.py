@@ -186,11 +186,8 @@ def parse_insurance(data: dict, car: CarData):
     car.other_accident_cost = data.get("otherAccidentCost") or 0
     car.total_loss_cnt      = data.get("totalLossCnt") or 0
     
-    # Тут ты написал абсолютно правильно!
     car.flood_cnt = (data.get("floodTotalLossCnt") or 0) + (data.get("floodPartLossCnt") or 0)
 
-    # ТВОЯ ЛОГИКА ТИПОВ (Идеально!)
-    # type: "1" = своя вина, "2" = чужая вина, "3" = выплата третьей стороне/имуществу
     TYPE_MAP = {"1": "my_fault", "2": "other_fault", "3": "third_party"}
     
     car.accidents = [
@@ -262,7 +259,8 @@ class EncarParser:
         url = (
             f"{SEARCH_URL}"
             f"?count=true"
-            f"&q=(And.Hidden.N._.CarType.A.)"
+            # f"&q=(And.Hidden.N._.(Or.CarType.A._.CarType.B.))"
+            f"&q=(And.Hidden.N.)"
             f"&inav=%7CMetadata%7CSort"
         )
         data = await self._get(url, headers=HEADERS_SEARCH)
@@ -291,7 +289,8 @@ class EncarParser:
             url = (
                 f"{SEARCH_URL}"
                 f"?count=true"
-                f"&q=(And.Hidden.N._.CarType.A.)"
+                # f"&q=(And.Hidden.N._.(Or.CarType.A._.CarType.B.))"
+                f"&q=(And.Hidden.N.)"
                 f"&sr=%7CModifiedDate%7C{offset}%7C{page_size}"
             )
             data = await self._get(url, headers=HEADERS_SEARCH)

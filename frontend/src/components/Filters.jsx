@@ -19,7 +19,8 @@ function DropdownSearch({ label, options = [], value, onChange, placeholder = '�
   const getLabel = (opt) => isObj ? opt.label : opt;
   const getValue = (opt) => isObj ? opt.value : opt;
 
-  const filtered = options.filter(opt => getLabel(opt).toLowerCase().includes(search.toLowerCase()));
+  const filtered = options.filter(opt => getLabel(opt).toLowerCase().startsWith(search.toLowerCase()));
+
 
   const handleSelect = (option) => {
     const val = getValue(option);
@@ -35,7 +36,9 @@ function DropdownSearch({ label, options = [], value, onChange, placeholder = '�
     setIsOpen(false);
   };
 
-  const selectedOption = options.find(opt => getValue(opt) === value);
+  const selectedOption = value 
+  ? options.find(opt => String(getValue(opt)).toLowerCase() === String(value).toLowerCase()) 
+  : null;
   const displayValue = selectedOption ? getLabel(selectedOption) : value;
 
   return (
@@ -107,15 +110,26 @@ function RangeInput({ label, minVal, maxVal, onChange, placeholderMin = 'От', 
   const [localMin, setLocalMin] = useState(minVal ?? '');
   const [localMax, setLocalMax] = useState(maxVal ?? '');
 
-  // Синхронизация с внешними фильтрами
+  // Синхронизация с внешними фильтрами (если нажали "Сбросить всё")
   useEffect(() => {
     setLocalMin(minVal ?? '');
     setLocalMax(maxVal ?? '');
   }, [minVal, maxVal]);
 
-  const applyRange = () => {
-    onChange({ min: localMin !== '' ? Number(localMin) : null, max: localMax !== '' ? Number(localMax) : null });
-  };
+  // АВТОМАТИЧЕСКОЕ ПРИМЕНЕНИЕ С ЗАДЕРЖКОЙ (Debounce)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const parsedMin = localMin !== '' ? Number(localMin) : null;
+      const parsedMax = localMax !== '' ? Number(localMax) : null;
+      
+      // Чтобы не отправлять лишние запросы, если ничего по факту не изменилось
+      if (parsedMin !== minVal || parsedMax !== maxVal) {
+        onChange({ min: parsedMin, max: parsedMax });
+      }
+    }, 500); // Ждем 500 мс после последнего нажатия клавиши
+
+    return () => clearTimeout(timer);
+  }, [localMin, localMax]); // Следим только за внутренними стейтами
 
   const handleClear = () => {
     setLocalMin('');
@@ -128,12 +142,14 @@ function RangeInput({ label, minVal, maxVal, onChange, placeholderMin = 'От', 
   };
 
   const handleMinChange = (e) => {
-    const val = e.target.value;
+    let val = e.target.value;
+    if (val !== '') val = val.replace(/^0+(?=\d)/, ''); // Убираем ведущие нули
     if (val === '' || Number(val) >= 0) setLocalMin(val);
   };
 
   const handleMaxChange = (e) => {
-    const val = e.target.value;
+    let val = e.target.value;
+    if (val !== '') val = val.replace(/^0+(?=\d)/, ''); // Убираем ведущие нули
     if (val === '' || Number(val) >= 0) setLocalMax(val);
   };
 
@@ -153,36 +169,35 @@ function RangeInput({ label, minVal, maxVal, onChange, placeholderMin = 'От', 
         )}
       </div>
       
-      {/* Рамка вокруг инпутов и кнопки, как на скриншоте */}
-      <div className="flex flex-col gap-3 p-3 border border-gray-200 rounded-xl bg-gray-50/50">
-        <div className="flex items-center gap-2">
-          <input 
-            type="number" min="0" value={localMin} onChange={handleMinChange} onKeyDown={preventInvalidChars}
-            placeholder={placeholderMin} 
-            className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white" 
-          />
-          <span className="text-gray-400 font-bold">—</span>
-          <input 
-            type="number" min="0" value={localMax} onChange={handleMaxChange} onKeyDown={preventInvalidChars}
-            placeholder={placeholderMax} 
-            className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white" 
-          />
-        </div>
-        <button 
-          onClick={applyRange} 
-          className="w-full bg-red-600 text-white rounded-lg p-2.5 text-sm font-bold hover:bg-red-700 transition-colors shadow-sm"
-        >
-          Применить
-        </button>
+      {/* Рамка вокруг инпутов (Кнопка "Применить" удалена) */}
+      <div className="flex items-center gap-2 p-3 border border-gray-200 rounded-xl bg-gray-50/50">
+        <input 
+          type="number" min="0" value={localMin} onChange={handleMinChange} onKeyDown={preventInvalidChars}
+          placeholder={placeholderMin} 
+          className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-red-600 bg-white transition-shadow" 
+        />
+        <span className="text-gray-400 font-bold">—</span>
+        <input 
+          type="number" min="0" value={localMax} onChange={handleMaxChange} onKeyDown={preventInvalidChars}
+          placeholder={placeholderMax} 
+          className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-red-600 bg-white transition-shadow" 
+        />
       </div>
     </div>
   );
 }
 
 // --- ОСНОВНОЙ КОМПОНЕНТ ФИЛЬТРОВ ---
-export default function Filters({ filters, setFilters }) {
-  const [options, setOptions] = useState({ manufacturers: [], hierarchy: {}, fuels: [], body_types: [] });
+export default function Filters({ filters, setFilters, isHistory = false }) {
+  const [options, setOptions] = useState({ manufacturers: [], hierarchy: {}, fuels: [], colors: [] });
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Передаем is_history на бэкенд
+    axios.get('/filters', { params: { is_history: isHistory } })
+      .then(res => { setOptions(res.data); setLoading(false); })
+      .catch(err => { console.error("Ошибка загрузки фильтров:", err); setLoading(false); });
+  }, [isHistory]);
 
   useEffect(() => {
     axios.get('/filters')
@@ -206,6 +221,25 @@ export default function Filters({ filters, setFilters }) {
       return next;
     });
   };
+  const FUEL_RU_MAP = {
+    'Gasoline': 'Бензин',
+    'Diesel': 'Дизель',
+    'Electric': 'Электро',
+    'Gasoline+Electric (Hybrid)': 'Гибрид (Бензин)',
+    'Diesel+Electric (Hybrid)': 'Гибрид (Дизель)',
+    'LPG': 'Газ (LPG)',
+    'LPG+Electric': 'Гибрид (Газ)',
+    'Gasoline+LPG': 'Бензин + Газ',
+    'Hydrogen': 'Водород',
+    'Gasoline+CNG': 'Бензин + Метан',
+    'CNG': 'Метан',
+    'Other': 'Другое'
+  };
+
+  const fuelOptions = (options.fuels || []).map(f => ({
+    value: f,
+    label: FUEL_RU_MAP[f] || f
+  }));
 
   const handleRangeChange = (name) => (range) => {
     setFilters(prev => ({ ...prev, [name + '_min']: range.min, [name + '_max']: range.max }));
@@ -230,27 +264,41 @@ export default function Filters({ filters, setFilters }) {
           <DropdownSearch label="Марка" options={options.manufacturers} value={filters.manufacturer || ''} onChange={handleDropdownChange('manufacturer')} placeholder="Все марки" />
           <DropdownSearch label="Модель" options={availableGroups} value={filters.model_group || ''} onChange={handleDropdownChange('model_group')} placeholder={filters.manufacturer ? "Все модели" : "Сначала выберите марку"} disabled={!filters.manufacturer} />
           <DropdownSearch label="Поколение / Версия" options={availableSpecificModels} value={filters.model || ''} onChange={handleDropdownChange('model')} placeholder={filters.model_group ? "Все поколения" : "Выберите модель"} disabled={!filters.model_group} />
-          <DropdownSearch label="Тип кузова" options={options.body_types} value={filters.body_type || ''} onChange={handleDropdownChange('body_type')} placeholder="Любой кузов" />
+          {/* <DropdownSearch label="Тип кузова" options={options.body_types} value={filters.body_type || ''} onChange={handleDropdownChange('body_type')} placeholder="Любой кузов" /> */}
+          <DropdownSearch 
+          label="Цвет кузова" 
+          options={options.colors} 
+          value={filters.color || ''} 
+          onChange={handleDropdownChange('color')} 
+          placeholder="Любой цвет" 
+        />
         </div>
         
         <hr className="my-2 border-gray-100" />
         
         {/* ОТКРЫТЫЕ ИНПУТЫ (RangeInput вместо RangeDropdown) */}
         <div className="space-y-6">
-          <RangeInput label="Год выпуска" minVal={filters.year_min} maxVal={filters.year_max} onChange={handleRangeChange('year')} placeholderMin="2018" placeholderMax="2024" />
           <RangeInput 
-          label="Цена под ключ ($)" 
-          minVal={filters.price_min} 
-          maxVal={filters.price_max} 
-          onChange={handleRangeChange('price')} 
-          placeholderMin="15000" 
-          placeholderMax="∞" 
-        />          
-        <RangeInput label="Пробег (км)" minVal={filters.mileage_min} maxVal={filters.mileage_max} onChange={handleRangeChange('mileage')} placeholderMin="0" placeholderMax="300000" />
-        <RangeInput label="Объем двигателя (см³)" minVal={filters.displacement_min} maxVal={filters.displacement_max} onChange={handleRangeChange('displacement')} placeholderMin="100" placeholderMax="7000" />
+          label="Год выпуска" 
+          minVal={filters.year_min} maxVal={filters.year_max} onChange={handleRangeChange('year')} 
+          placeholderMin={isHistory ? "От" : "От"} placeholderMax="До" 
+        />
+        <RangeInput 
+          label={isHistory ? "Цена в Корее ($)" : "Цена под ключ ($)"} 
+          minVal={filters.price_min} maxVal={filters.price_max} onChange={handleRangeChange('price')} 
+          placeholderMin={isHistory ? "От" : "От"} placeholderMax="До" 
+        />
+        <RangeInput label="Пробег (км)" minVal={filters.mileage_min} maxVal={filters.mileage_max} onChange={handleRangeChange('mileage')} placeholderMin="От" placeholderMax="До" />
+        <RangeInput label="Объем двигателя (см³)" minVal={filters.displacement_min} maxVal={filters.displacement_max} onChange={handleRangeChange('displacement')} placeholderMin="От" placeholderMax="До" />
         </div>
 
-        <DropdownSearch label="Тип топлива" options={options.fuels} value={filters.fuel || ''} onChange={handleDropdownChange('fuel')} placeholder="Любое топливо" />
+        <DropdownSearch
+              label="Тип топлива"
+              options={fuelOptions}
+              value={filters.fuel || ''}
+              onChange={handleDropdownChange('fuel')}
+              placeholder="Любое топливо"
+            />
 
         <div className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-100 rounded-xl mt-4">
           <input 

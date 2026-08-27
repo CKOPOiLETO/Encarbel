@@ -1,27 +1,96 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Calculator, Info, ShieldCheck, Truck, ExternalLink, FileText, AlertTriangle, Users, Droplets, Wrench, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Calculator, Archive, Info, ShieldCheck, Truck, ExternalLink, FileText, AlertTriangle, Users, Droplets, Wrench, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { BelarusCustomsCalculator } from '../utils/calculator';
-
+import { trackEvent } from '../utils/analytics';
+const FUEL_RU_MAP = {
+  'Gasoline': 'Бензин',
+  'Diesel': 'Дизель',
+  'Electric': 'Электро',
+  'Gasoline+Electric (Hybrid)': 'Гибрид (Бензин)',
+  'Diesel+Electric (Hybrid)': 'Гибрид (Дизель)',
+  'LPG': 'Газ (LPG)',
+  'LPG+Electric': 'Гибрид (Газ)',
+  'Gasoline+LPG': 'Бензин + Газ',
+  'Hydrogen': 'Водород',
+  'Gasoline+CNG': 'Бензин + Метан',
+  'CNG': 'Метан',
+  'Other': 'Другое'
+};
 export default function CarDetail() {
   const { id } = useParams();
-  const [showUnique, setShowUnique] = useState(true);    
-  const [showStandard, setShowStandard] = useState(false);
   const navigate = useNavigate();
   const [car, setCar] = useState(null);
   const [rates, setRates] = useState(null);
   const [mainPhoto, setMainPhoto] = useState(null);
   const [loading, setLoading] = useState(true);
-
+  const [vinCode, setVinCode] = useState('');
   const [isPrivileged, setIsPrivileged] = useState(true);
   const [volume, setVolume] = useState(1600);
+  const [showUnique, setShowUnique] = useState(true);
+  const [showStandard, setShowStandard] = useState(false);
+  const [canonicalId, setCanonicalId] = useState(id); 
+  // Полноэкранный просмотр фото
+  const [lightboxImg, setLightboxImg] = useState(null);  
+  // Реф для хранения всех миниатюр
+  const thumbRefs = useRef([]);
 
-  // БЕЗОПАСНАЯ проверка на электромобиль
   const isElectric = (car && car.fuel) 
-    ? (car.fuel.toLowerCase().includes('electric') || car.fuel.includes('전기')) 
+    ? (car.fuel === 'Electric' || car.fuel === '전기') 
     : false;
-
+    const changePhoto = (direction, e) => {
+      if (e) e.stopPropagation();
+      if (!car || !car.photos) return;
+      
+      const currentImg = lightboxImg || mainPhoto;
+      const currentIndex = car.photos.indexOf(currentImg);
+      
+      let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+      if (newIndex < 0) newIndex = car.photos.length - 1;
+      if (newIndex >= car.photos.length) newIndex = 0;
+  
+      const newPhoto = car.photos[newIndex];
+      setMainPhoto(newPhoto);
+      if (lightboxImg) setLightboxImg(newPhoto);
+    };
+  
+    // Делаем фоновый запрос через НАШ БЭКЕНД, чтобы безопасно узнать истинный ID авто
+    useEffect(() => {
+    axios.get(`/real-id/${id}`)
+      .then(res => {
+        if (res.data) {
+          if (res.data.vehicleId) setCanonicalId(res.data.vehicleId);
+          if (res.data.vin) setVinCode(res.data.vin); // <--- СОХРАНЯЕМ VIN
+        }
+      })
+      .catch(err => console.error("Ошибка получения данных от Encar:", err));
+  }, [id]);
+    // СИНХРОНИЗАЦИЯ: Автоматически прокручиваем миниатюры при смене главного фото
+    useEffect(() => {
+      if (car?.photos && mainPhoto) {
+        const index = car.photos.indexOf(mainPhoto);
+        if (index !== -1 && thumbRefs.current[index]) {
+          thumbRefs.current[index].scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',   // Не дергаем страницу по вертикали
+            inline: 'center'    // Ставим миниатюру по центру по горизонтали
+          });
+        }
+      }
+    }, [mainPhoto, car]);
+  
+    // ГОРЯЧИЕ КЛАВИШИ ДЛЯ ПОЛНОЭКРАННОГО РЕЖИМА
+    useEffect(() => {
+      const handleKeyDown = (e) => {
+        if (!lightboxImg) return;
+        if (e.key === 'ArrowRight') changePhoto('next');
+        if (e.key === 'ArrowLeft') changePhoto('prev');
+        if (e.key === 'Escape') setLightboxImg(null);
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [lightboxImg, car, mainPhoto]);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -49,60 +118,105 @@ export default function CarDetail() {
     if (!car || !rates || car.is_lease) return null;
 
     const calc = new BelarusCustomsCalculator();
-    const basePriceByn = car.price_won * rates.KRW;
-    const priceByn = car.price_won * rates.KRW;
-    const priceUsd = Math.round((basePriceByn * 1.035) / rates.USD);
-    const priceEur = priceByn / rates.EUR;
-
-    const age = (new Date().getFullYear() - (car.manufacture_date ? new Date(car.manufacture_date).getFullYear() : car.year)) <= 5 ? 'medium' : 'old';
     
+    // 1. БАЗОВАЯ ЦЕНА (Как в карточке)
+    const krwRate = rates.KRW_BITHUMB || 1435;
+    const priceUsd = Math.round((car.price_won / krwRate) * 1.02);
+    
+    // Переводим в рубли и евро для дальнейшей растаможки
+    const priceBynNetto = priceUsd * rates.USD;
+    const priceEurNetto = priceBynNetto / rates.EUR;
+
+    // 2. ВОЗРАСТ И ЭЛЕКТРО (Как в карточке)
+    const isElectric = car.fuel === 'Electric' || car.fuel === '전기';
+    
+    const getAgeCategory = (dateString, fallbackYear) => {
+      const prodDate = dateString ? new Date(dateString) : new Date(fallbackYear, 0, 1);
+      const diffYears = (new Date() - prodDate) / (1000 * 60 * 60 * 24 * 365.25);
+      if (diffYears < 3) return 'new';
+      if (diffYears < 5) return 'medium';
+      return 'old';
+    };
+
+    // 3. РАСЧЕТ ТАМОЖНИ
     const dutyResult = calc.calculate({
       engineType: isElectric ? 'electric' : 'fuel',
       personType: 'physical',
-      priceEur: priceEur,
+      priceEur: priceEurNetto,
       engineVolumeCm3: volume || 1600,
-      ageCategory: age,
+      ageCategory: getAgeCategory(car.manufacture_date, car.year),
       isPrivileged: isPrivileged
     });
 
-    const bynToUsd = (byn) => byn / rates.USD;
-    const eurToUsd = (eur) => (eur * rates.EUR) / rates.USD;
+    // 4. СУММЫ В BYN (Точь-в-точь как в CarCard)
+    const shippingByn = 6000 * rates.USD;
+    const customsByn = (dutyResult.customsDuty + dutyResult.customsFee) * rates.EUR;
+    const utilByn = dutyResult.utilizationFee; 
+    const declarantByn = 300;
+    const warehouseByn = 300;
+    const companyFeeByn = 950;
+    const fixedFeesByn = declarantByn + warehouseByn + companyFeeByn;
 
-    const items = {
-      carUsd: priceUsd,
+    // 5. ИТОГОВЫЕ СУММЫ (Абсолютно идентично карточке)
+    const totalByn = Math.round(priceBynNetto + shippingByn + customsByn + utilByn + fixedFeesByn);
+    const totalUsd = Math.round(totalByn / rates.USD);
+
+    // 6. Хелперы конвертации чисто для визуала списка сметы
+    const bynToUsd = (byn) => Math.round(byn / rates.USD);
+    const eurToUsd = (eur) => Math.round((eur * rates.EUR) / rates.USD);
+
+    return {
+      carUsd: bynToUsd(priceBynNetto),
       shippingUsd: 6000,
-      dutyUsd: Math.round(eurToUsd(dutyResult.customsDuty)),
-      utilizationUsd: Math.round(bynToUsd(dutyResult.utilizationFee)), 
-      customsFeeUsd: Math.round(eurToUsd(dutyResult.customsFee)),
-      declarantUsd: Math.round(bynToUsd(300)),
-      warehouseUsd: Math.round(bynToUsd(300)),
-      companyFeeUsd: Math.round(bynToUsd(950)),
+      dutyUsd: eurToUsd(dutyResult.customsDuty),
+      customsFeeUsd: eurToUsd(dutyResult.customsFee),
+      utilizationUsd: bynToUsd(utilByn),
+      declarantUsd: bynToUsd(declarantByn),
+      warehouseUsd: bynToUsd(warehouseByn),
+      companyFeeUsd: bynToUsd(companyFeeByn),
+      total: totalUsd // Берем точный тотал, а не сумму округленных кусочков!
     };
-
-    const total = Object.values(items).reduce((a, b) => a + b, 0);
-
-    return { ...items, total, priceEur };
-  }, [car, rates, isPrivileged, volume, isElectric]);
-  useEffect(() => {
-    if (car) {
-      document.title = `Купить ${car.manufacturer} ${car.model} ${car.year} из Кореи | EncarBel`;
-      
-      const metaDescription = document.querySelector('meta[name="description"]');
-      if (metaDescription) {
-        metaDescription.setAttribute(
-          'content', 
-          `Заказать ${car.manufacturer} ${car.model} ${car.year} г.в. Пробег ${car.mileage?.toLocaleString()} км. Цена под ключ в Минске. Отчеты Encar, проверка, доставка из Южной Кореи.`
-        );
-      }
+  }, [car, rates, isPrivileged, volume]);
+  // Скролл миниатюр
+  const thumbScrollRef = useRef(null);
+  const scrollThumbs = (direction) => {
+    if (thumbScrollRef.current) {
+      const scrollAmount = direction === 'left' ? -300 : 300;
+      thumbScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
-  }, [car]);
+  };
+
+  // Перелистывание главного фото
+  const handlePrevPhoto = (e) => {
+    e.stopPropagation();
+    if (!car.photos) return;
+    const currentIndex = car.photos.indexOf(mainPhoto);
+    const prevIndex = currentIndex === 0 ? car.photos.length - 1 : currentIndex - 1;
+    setMainPhoto(car.photos[prevIndex]);
+  };
+
+  const handleNextPhoto = (e) => {
+    e.stopPropagation();
+    if (!car.photos) return;
+    const currentIndex = car.photos.indexOf(mainPhoto);
+    const nextIndex = currentIndex === car.photos.length - 1 ? 0 : currentIndex + 1;
+    setMainPhoto(car.photos[nextIndex]);
+  };
 
   const renderOption = (opt, index) => {
+    // Ищем паттерн цены, который оставляет парсер: "(1,100,000₩)"
     const match = opt.match(/\(([\d,]+)₩\)/);
+    
     if (match && rates) {
+      // Достаем чистое число вон
       const wonPrice = parseInt(match[1].replace(/,/g, ''), 10);
-      const bynPrice = Math.round(wonPrice * rates.KRW);
-      const usdPrice = Math.round(bynPrice / rates.USD);
+      
+      // КОНВЕРТИРУЕМ ПО ПРАВИЛЬНОЙ ФОРМУЛЕ BITHUMB (+2% комиссии)
+      const krwRate = rates.KRW_BITHUMB || 1435;
+      const usdPrice = Math.round((wonPrice / krwRate) * 1.02);
+      const bynPrice = Math.round(usdPrice * rates.USD);
+      
+      // Отрезаем старую корейскую цену из строки
       const cleanName = opt.replace(/—.*만원.*\)/, '').trim();
       
       return (
@@ -112,11 +226,13 @@ export default function CarDetail() {
             <span className="text-gray-700">{cleanName}</span>
           </span>
           <span className="text-[10px] font-bold text-gray-500 whitespace-nowrap bg-gray-100 px-2 py-1 rounded w-max">
-            ≈ {usdPrice}$ / {bynPrice} BYN
+            ≈ {usdPrice}$ / {bynPrice.toLocaleString('ru-RU')} BYN
           </span>
         </li>
       );
     }
+    
+    // Если цены у опции нет (бесплатная/базовая), выводим как обычно
     return (
       <li key={index} className="flex items-start gap-2 border-b border-gray-50 pb-2 last:border-0 text-gray-700">
         <span className="text-red-500 font-bold mt-0.5">✓</span> {opt}
@@ -138,6 +254,43 @@ export default function CarDetail() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-20">
+      
+      {/* 1. ПОЛНОЭКРАННАЯ ГАЛЕРЕЯ (LIGHTBOX) */}
+      {lightboxImg && (
+        <div 
+          onClick={() => setLightboxImg(null)}
+          className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4 animate-fade-in"
+        >
+          {/* Кнопка Влево */}
+          <button onClick={(e) => changePhoto('prev', e)} className="absolute left-2 md:left-8 text-white/50 hover:text-white p-4 z-50 transition-colors">
+            <ChevronLeft size={48} />
+          </button>
+
+          {/* Сама картинка */}
+          <img 
+            src={lightboxImg} 
+            className="max-w-full max-h-full rounded-xl object-contain shadow-2xl cursor-default select-none" 
+            alt="Enlarged view" 
+            onClick={(e) => e.stopPropagation()} // Клик по фото не закрывает окно
+          />
+
+          {/* Кнопка Вправо */}
+          <button onClick={(e) => changePhoto('next', e)} className="absolute right-2 md:right-8 text-white/50 hover:text-white p-4 z-50 transition-colors">
+            <ChevronRight size={48} />
+          </button>
+
+          {/* Кнопка Закрыть */}
+          <button onClick={() => setLightboxImg(null)} className="absolute top-4 right-4 md:top-8 md:right-8 text-white/70 hover:text-white flex items-center gap-2 font-bold tracking-wider uppercase text-sm bg-white/10 hover:bg-red-600 px-4 py-2 rounded-full transition-all">
+            Закрыть ✕
+          </button>
+
+          {/* Счетчик фото */}
+          <div className="absolute bottom-6 text-white font-bold text-sm bg-black/50 px-4 py-2 rounded-full tracking-widest">
+            {car.photos?.indexOf(lightboxImg) + 1} / {car.photos?.length}
+          </div>
+        </div>
+      )}
+
       <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-gray-500 hover:text-red-600 mb-6 font-medium transition-colors cursor-pointer">
         <ArrowLeft size={20} /> Назад в каталог
       </button>
@@ -147,22 +300,59 @@ export default function CarDetail() {
         {/* ЛЕВАЯ КОЛОНКА */}
         <div className="lg:col-span-8 space-y-8">
           
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-            <div className="bg-gray-100 rounded-xl overflow-hidden h-[350px] md:h-[550px] mb-4 border">
-              <img src={mainPhoto} alt="Main" className="w-full h-full object-cover" />
+          {/* 2. ГАЛЕРЕЯ НА СТРАНИЦЕ */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 relative group">
+            
+            {/* Главное фото со стрелочками */}
+            <div 
+              onClick={() => setLightboxImg(mainPhoto)}
+              className="bg-gray-100 rounded-xl overflow-hidden h-[350px] md:h-[550px] mb-4 border relative cursor-zoom-in group/photo select-none"
+            >
+              <img src={mainPhoto} alt="Main" className="w-full h-full object-contain" />
+              
+              <button onClick={(e) => changePhoto('prev', e)} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 text-gray-800 p-2 rounded-full shadow-lg z-10 opacity-0 group-hover/photo:opacity-100 transition-opacity hover:bg-red-600 hover:text-white">
+                <ChevronLeft size={24} />
+              </button>
+              
+              <button onClick={(e) => changePhoto('next', e)} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 text-gray-800 p-2 rounded-full shadow-lg z-10 opacity-0 group-hover/photo:opacity-100 transition-opacity hover:bg-red-600 hover:text-white">
+                <ChevronRight size={24} />
+              </button>
+
+              <div className="absolute bottom-4 right-4 bg-black/60 text-white text-xs font-bold px-3 py-1.5 rounded-full tracking-widest backdrop-blur-sm">
+                {car.photos?.indexOf(mainPhoto) + 1} / {car.photos?.length}
+              </div>
             </div>
-            <div className="flex overflow-x-auto gap-2 pb-4 custom-scrollbar">
+
+            {/* Лента миниатюр */}
+            <div ref={thumbScrollRef} className="flex overflow-x-auto gap-2 pb-4 custom-scrollbar scroll-smooth">
               {car.photos?.map((p, i) => (
                 <img 
-                  key={i} src={p} 
+                  key={i} 
+                  ref={el => thumbRefs.current[i] = el} // Записываем каждую миниатюру в массив Refs
+                  src={p} 
                   onClick={() => setMainPhoto(p)}
-                  className={`w-20 h-16 md:w-24 md:h-20 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${mainPhoto === p ? 'border-red-600' : 'border-transparent opacity-60 hover:opacity-100'}`} 
-                  alt="Thumb" 
+                  className={`w-20 h-16 md:w-24 md:h-20 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${mainPhoto === p ? 'border-red-600 opacity-100 scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`} 
+                  alt={`Thumb ${i}`} 
                 />
               ))}
             </div>
           </div>
 
+          {/* МОБИЛЬНАЯ КНОПКА СМЕТЫ (скрыта на ПК) */}
+          {costs && car.is_active !== false && (
+            <div className="lg:hidden w-full">
+              <button 
+                onClick={() => document.getElementById('smeta')?.scrollIntoView({ behavior: 'smooth' })}
+                className="w-full bg-red-600 hover:bg-red-700 text-white rounded-2xl py-4 px-6 flex flex-col items-center justify-center gap-1 shadow-lg shadow-red-600/30 active:scale-[0.99] transition-all cursor-pointer"
+              >
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Итого под ключ</span>
+                <span className="text-2xl font-black">${costs.total.toLocaleString()}</span>
+                <span className="text-xs font-semibold underline mt-1">Посмотреть детализацию сметы</span>
+              </button>
+            </div>
+          )}
+
+          {/* Характеристики */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
             <h2 className="text-2xl font-extrabold mb-6 flex items-center gap-2 text-gray-800">
               <Info className="text-red-600" size={24} /> Основная информация
@@ -173,7 +363,7 @@ export default function CarDetail() {
               <div className="border-b pb-2">
                 <span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Дата производства</span> 
                 <span className="font-bold text-lg">
-                  {car.manufacture_date ? new Date(car.manufacture_date).toLocaleDateString('ru-RU', {month: 'numeric', year: 'numeric'}) : car.year}
+                  {car.manufacture_date ? new Date(car.manufacture_date).toLocaleDateString('ru-RU', {month: 'long', year: 'numeric'}) : car.year}
                 </span>
               </div>
               <div className="border-b pb-2">
@@ -182,24 +372,26 @@ export default function CarDetail() {
                   {isElectric ? 'Электро' : (car.displacement_cc ? `${car.displacement_cc} см³` : '-')}
                 </span>
               </div>
+              <div className="border-b pb-2">
+                <span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">VIN-код</span> 
+                <span className="font-bold text-lg text-gray-800">{vinCode || 'Загрузка...'}</span>
+              </div>
               <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Кузов</span> <span className="font-bold text-lg">{car.body_type || '-'}</span></div>
               <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Пробег</span> <span className="font-bold text-lg">{car.mileage?.toLocaleString()} км</span></div>
-              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Топливо</span> <span className="font-bold text-lg">{car.fuel}</span></div>
-              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Трансмиссия</span> <span className="font-bold text-lg">{car.transmission}</span></div>
+              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Топливо</span> <span className="font-bold text-lg">{FUEL_RU_MAP[car.fuel] || car.fuel}</span></div>              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Трансмиссия</span> <span className="font-bold text-lg">{car.transmission}</span></div>
               <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Цвет</span> <span className="font-bold text-lg">{car.color}</span></div>
             </div>
           </div>
 
+          {/* Страховая история */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
             <h2 className="text-2xl font-extrabold mb-6 flex items-center gap-2 text-gray-800">
               <FileText className="text-red-600" size={24} /> Страховая история (Encar)
             </h2>
 
             <div className="space-y-6">
-              {/* СТАТИСТИКА (Показываем, если есть данные) */}
               {car.owner_changes !== null && car.owner_changes !== undefined ? (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Смена владельцев */}
                   <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between">
                     <div className="flex items-center gap-2 text-gray-500 mb-2">
                       <Users size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Владельцы</span>
@@ -207,7 +399,6 @@ export default function CarDetail() {
                     <div className="text-2xl font-black text-gray-800">{car.owner_changes} <span className="text-sm font-medium text-gray-500">раз(а)</span></div>
                   </div>
 
-                  {/* Полная гибель / Затопление */}
                   <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between">
                     <div className="flex items-center gap-2 text-gray-500 mb-2">
                       <Droplets size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Тотал / Потоп</span>
@@ -217,7 +408,6 @@ export default function CarDetail() {
                     </div>
                   </div>
 
-                  {/* Аварии (Своя вина) */}
                   <div className={`p-4 rounded-xl border flex flex-col justify-between ${car.my_accident_cnt > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
                     <div className={`flex items-center gap-2 mb-2 ${car.my_accident_cnt > 0 ? 'text-red-500' : 'text-gray-500'}`}>
                       <AlertTriangle size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Своя вина</span>
@@ -232,7 +422,6 @@ export default function CarDetail() {
                     </div>
                   </div>
 
-                  {/* Аварии (Чужая вина) */}
                   <div className={`p-4 rounded-xl border flex flex-col justify-between ${car.other_accident_cnt > 0 ? 'bg-orange-50 border-orange-100' : 'bg-gray-50 border-gray-100'}`}>
                     <div className={`flex items-center gap-2 mb-2 ${car.other_accident_cnt > 0 ? 'text-orange-500' : 'text-gray-500'}`}>
                       <Wrench size={16} /> <span className="text-[10px] font-bold uppercase tracking-widest">Чужая вина</span>
@@ -253,10 +442,9 @@ export default function CarDetail() {
                 </div>
               )}
 
-              {/* КНОПКИ: ОТЧЕТЫ И ТЕХОСМОТР (ТЕПЕРЬ ПОКАЗЫВАЮТСЯ ВСЕГДА) */}
               <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-100">
                 <a 
-                  href={`https://fem.encar.com/cars/report/accident/${car.car_id}`} 
+                  href={`https://fem.encar.com/cars/report/accident/${canonicalId}`} 
                   target="_blank" 
                   rel="noreferrer"
                   className="flex-1 flex justify-between items-center bg-gray-50 hover:bg-gray-100 border border-gray-200 p-4 rounded-xl transition-colors group"
@@ -269,7 +457,7 @@ export default function CarDetail() {
                 </a>
                 
                 <a 
-                  href={`https://www.encar.com/md/sl/mdsl_regcar.do?method=inspectionViewNew&carid=${car.car_id}`} 
+                  href={`https://www.encar.com/md/sl/mdsl_regcar.do?method=inspectionViewNew&carid=${canonicalId}`} 
                   target="_blank" 
                   rel="noreferrer"
                   className="flex-1 flex justify-between items-center bg-gray-50 hover:bg-gray-100 border border-gray-200 p-4 rounded-xl transition-colors group"
@@ -281,13 +469,11 @@ export default function CarDetail() {
                   <ExternalLink size={20} className="text-gray-400 group-hover:text-red-600 transition-colors" />
                 </a>
               </div>
-
             </div>
           </div>
 
+          {/* Опции */}
           <div className="space-y-4">
-            
-            {/* УНИКАЛЬНЫЕ ОПЦИИ */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <button 
                 onClick={() => setShowUnique(!showUnique)}
@@ -315,7 +501,6 @@ export default function CarDetail() {
               </div>
             </div>
 
-            {/* СТАНДАРТНАЯ КОМПЛЕКТАЦИЯ */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <button 
                 onClick={() => setShowStandard(!showStandard)}
@@ -346,13 +531,32 @@ export default function CarDetail() {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
-        {/* ПРАВАЯ КОЛОНКА (Калькулятор) */}
-        <div className="lg:col-span-4">
-          {car.is_lease ? (
+        {/* ПРАВАЯ КОЛОНКА (Смета расходов) */}
+        {/* Добавлен ID smeta для плавной прокрутки */}
+        <div id="smeta" className="lg:col-span-4 w-full">
+          {car.is_active === false ? (
+            <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-200 p-8 sticky top-24 text-center">
+              <div className="w-16 h-16 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Archive size={32} />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900 mb-2 uppercase tracking-tight">Автомобиль продан</h2>
+              <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+                Этот автомобиль был продан на Encar и больше недоступен для покупки.
+              </p>
+              <div className="bg-gray-50 text-gray-800 p-4 rounded-xl font-black mb-2 text-3xl">
+                ${Math.round((car.price_won / (rates?.KRW_BITHUMB || 1435)) * 1.02).toLocaleString('ru-RU')}
+              </div>
+              <div className="text-gray-500 font-bold text-xs uppercase tracking-widest mb-8">
+                Цена закупки: {car.price_won.toLocaleString('ru-RU')} ₩
+              </div>
+              {/* <a href={car.url} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-gray-900 text-white py-4 rounded-xl font-bold hover:bg-black transition-colors">
+                Смотреть на Encar <ExternalLink size={18} />
+              </a> */}
+            </div>
+          ) : car.is_lease ? (
             <div className="bg-white rounded-2xl shadow-xl border-2 border-orange-100 p-8 sticky top-24 text-center">
               <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Info size={32} />
@@ -364,6 +568,21 @@ export default function CarDetail() {
               <div className="bg-orange-50 text-orange-800 p-4 rounded-xl font-bold mb-8 text-lg">
                 Уточняйте цену у дилера
               </div>
+              <button 
+                    onClick={() => {
+                      const carYear = car.manufacture_date ? new Date(car.manufacture_date).getFullYear() : (car.year || '');
+                      const carNameStr = `${car.manufacturer} ${car.model} ${carYear}`;
+                      const carIdStr = String(car.car_id);
+                      
+                      // Передаем марку и ID отдельными ключами
+                      window.dispatchEvent(new CustomEvent('open-lead-modal', { 
+                        detail: { carName: carNameStr, carId: carIdStr }
+                      }));
+                    }}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-black text-lg uppercase shadow-lg shadow-red-600/30 transition-transform active:scale-[0.98] mb-3"
+                  >
+                    Запросить цену
+                  </button>
               <a 
                 href={car.url} target="_blank" rel="noreferrer"
                 className="flex items-center justify-center gap-2 w-full bg-gray-900 text-white py-4 rounded-xl font-bold hover:bg-black transition-colors"
@@ -372,7 +591,7 @@ export default function CarDetail() {
               </a>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-2xl border border-red-100 p-6 sticky top-24">
+            <div className="bg-white rounded-2xl shadow-2xl border border-red-50 p-6 sticky top-24">
               <div className="flex items-center justify-between mb-8">
                  <h2 className="text-xl font-black text-gray-900 uppercase flex items-center gap-2">
                   <Calculator className="text-red-600" /> Смета расходов
@@ -411,7 +630,7 @@ export default function CarDetail() {
               {costs && (
                 <div className="space-y-5">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-500 text-sm font-medium">1. Цена в Корее (₩→$)</span>
+                    <span className="text-gray-500 text-sm font-medium">1. Цена в Корее</span>
                     <span className="font-bold text-lg">${costs.carUsd.toLocaleString()}</span>
                   </div>
 
@@ -423,43 +642,40 @@ export default function CarDetail() {
                   </div>
 
                   <div className="pt-4 border-t border-gray-100">
-                  {/* Заголовок блока с общей суммой */}
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-[10px] font-black text-red-600/50 uppercase tracking-widest block">
-                      3. Таможня и сборы (РБ)
-                    </span>
-                    <span className="font-bold text-lg">
-                      ${(costs.dutyUsd + costs.customsFeeUsd + costs.utilizationUsd + costs.declarantUsd + costs.warehouseUsd).toLocaleString('ru-RU')}
-                    </span>
-                  </div>
-                  
-                  {/* Раскладка блока */}
-                  <div className="space-y-3 ml-2">
-                  <div className="flex justify-between text-sm items-center">
-                      <span className="text-gray-500">
-                        Пошлина + Тамож. сбор
-                        {isPrivileged && (
-                          <span className="text-[10px] ml-1.5 text-red-500 font-bold uppercase tracking-tighter">
-                            (140 указ)
-                          </span>
-                        )}
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-[10px] font-black text-red-600/50 uppercase tracking-widest block">
+                        3. Таможня и сборы (РБ)
                       </span>
-                      <span className="font-bold text-gray-800">${(costs.dutyUsd + costs.customsFeeUsd).toLocaleString('ru-RU')}</span>
+                      <span className="font-bold text-lg">
+                        ${(costs.dutyUsd + costs.customsFeeUsd + costs.utilizationUsd + costs.declarantUsd + costs.warehouseUsd).toLocaleString('ru-RU')}
+                      </span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Утильсбор</span>
-                      <span className="font-bold text-gray-800">${costs.utilizationUsd.toLocaleString('ru-RU')}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Услуги декларанта</span>
-                      <span className="font-bold text-gray-800">≈ ${costs.declarantUsd.toLocaleString('ru-RU')}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">СВХ и ЭПТС</span>
-                      <span className="font-bold text-gray-800">≈ ${costs.warehouseUsd.toLocaleString('ru-RU')}</span>
+                    <div className="space-y-3 ml-2">
+                      <div className="flex justify-between text-sm items-center">
+                        <span className="text-gray-500">
+                          Пошлина + Тамож. сбор
+                          {isPrivileged && (
+                            <span className="text-[10px] ml-1.5 text-red-500 font-bold uppercase tracking-tighter">
+                              (140 указ)
+                            </span>
+                          )}
+                        </span>
+                        <span className="font-bold text-gray-800">${(costs.dutyUsd + costs.customsFeeUsd).toLocaleString('ru-RU')}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Утильсбор</span>
+                        <span className="font-bold text-gray-800">${costs.utilizationUsd.toLocaleString('ru-RU')}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Услуги декларанта</span>
+                        <span className="font-bold text-gray-800">≈ ${costs.declarantUsd.toLocaleString('ru-RU')}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">СВХ и ЭПТС</span>
+                        <span className="font-bold text-gray-800">≈ ${costs.warehouseUsd.toLocaleString('ru-RU')}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
                   <div className="flex justify-between items-center pt-4 border-t border-gray-100">
                     <span className="text-gray-500 text-sm font-medium flex items-center gap-2">
@@ -468,11 +684,11 @@ export default function CarDetail() {
                     <span className="font-bold text-lg text-green-700">${costs.companyFeeUsd}</span>
                   </div>
 
-                  <div className="mt-8 bg-gray-900 rounded-3xl p-6 text-white shadow-xl shadow-gray-200 transform hover:scale-[1.02] transition-transform">
-                    <div className="flex justify-between items-end">
-                      <span className="text-xs font-bold uppercase tracking-widest opacity-60">Итого:</span>
-                      <span className="text-4xl font-black tracking-tighter">${costs.total.toLocaleString()}</span>
-                    </div>
+                  <div className="mt-8 bg-gray-900 rounded-3xl p-6 text-white shadow-xl shadow-gray-200 transform hover:scale-[1.02] transition-transform"> 
+                    <div className="flex justify-between items-center"> 
+                      <span className="text-xl font-bold uppercase tracking-widest opacity-60">Итого:</span> 
+                      <span className="text-2xl font-black tracking-tighter">${costs.total.toLocaleString()}</span> 
+                    </div> 
                   </div>
                   
                   <div className="pt-6 space-y-1">
@@ -487,8 +703,44 @@ export default function CarDetail() {
                     href={car.url} target="_blank" rel="noreferrer"
                     className="mt-4 flex items-center justify-center gap-2 w-full bg-red-50 text-red-600 py-4 rounded-2xl font-black text-sm uppercase hover:bg-red-100 transition-colors"
                   >
-                    Оригинал на Encar <ExternalLink size={16} />
-                  </a>
+                   Оригинал на Encar <ExternalLink size={16} />
+                </a>
+
+                {/* НОВЫЙ БЛОК: КНОПКА ЗАЯВКИ И АНАЛИТИКА */}
+                <div className="pt-4 mt-4 border-t border-gray-100">
+                  <button 
+                    onClick={() => {
+                      const carYear = car.manufacture_date ? new Date(car.manufacture_date).getFullYear() : (car.year || '');
+                      const carNameStr = `${car.manufacturer} ${car.model} ${carYear}`;
+                      const carIdStr = String(car.car_id);
+                      
+                      // Передаем марку и ID отдельными ключами
+                      window.dispatchEvent(new CustomEvent('open-lead-modal', { 
+                        detail: { carName: carNameStr, carId: carIdStr }
+                      }));
+                    }}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-black text-lg uppercase shadow-lg shadow-red-600/30 transition-transform active:scale-[0.98] mb-3"
+                  >
+                    Получить консультацию
+                  </button>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <a 
+                      href="tel:+375293558447" 
+                      onClick={() => trackEvent('click_phone', { location: 'car_detail' })}
+                      className="flex items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 py-3 rounded-xl font-bold text-gray-700 text-sm transition-colors"
+                    >
+                      Позвонить
+                    </a>
+                    <a 
+                      href="https://t.me/EncarBel" target="_blank" rel="noreferrer"
+                      onClick={() => trackEvent('click_telegram', { location: 'car_detail' })}
+                      className="flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 py-3 rounded-xl font-bold text-blue-600 text-sm transition-colors"
+                    >
+                      Telegram
+                    </a>
+                  </div>
+                </div>
                 </div>
               )}
             </div>

@@ -1,7 +1,9 @@
+// Новый вариант дизайна
+
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import CarCard from './CarCard';
-import { Flame, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Gem, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function BottomMarketSlider({ filters, rates }) {
   const [deals, setDeals] = useState([]);
@@ -13,46 +15,42 @@ export default function BottomMarketSlider({ filters, rates }) {
     let isMounted = true;
     
     const fetchDeals = async () => {
-      // Ждем, пока загрузятся курсы валют (нам нужен курс USD)
       if (!rates || !rates.USD) return; 
 
       setLoading(true);
       try {
-        // 1. ОГРАНИЧЕНИЕ ПО ГОДУ (не старше 5 лет)
-        const currentYear = new Date().getFullYear();
-        const absoluteMinYear = currentYear - 5;
-        const effectiveYearMin = filters.year_min 
-          ? Math.max(Number(filters.year_min), absoluteMinYear) 
-          : absoluteMinYear;
-
-        // 2. ОГРАНИЧЕНИЕ ПО ЦЕНЕ (от 25 000 $)
-        // Переводим 25 000$ в BYN по актуальному курсу НБРБ
-        const absoluteMinPriceByn = Math.round(35000 * rates.USD);
-        
-        // Если пользователь сам поставил фильтр "От" (например, от 100 000 BYN), 
-        // берем то значение, которое больше.
-        const effectivePriceMin = filters.price_min 
-          ? Math.max(Number(filters.price_min), absoluteMinPriceByn) 
-          : absoluteMinPriceByn;
-
-        // 3. ФОРМИРУЕМ ЗАПРОС
-        const apiParams = { 
+        // Задаем жесткие рамки премиум-сегмента (от $60к до $110к) и случайный порядок
+        const premiumParams = { 
           ...filters, 
-          sort: 'price_asc', 
-          year_min: effectiveYearMin, 
-          price_min: effectivePriceMin, // Добавили фильтр цены
-          hide_lease: true,             // Скрыли лизинг!
+          sort: 'random', 
+          price_min: 60000, 
+          price_max: 110000, 
+          hide_lease: true,
           limit: 8, 
           offset: 0 
         };
 
-        const { data } = await axios.get('/cars', { params: apiParams });
+        let { data } = await axios.get('/cars', { params: premiumParams });
         
-        if (isMounted) {
-          setDeals(data);
+        // УМНАЯ ЗАГЛУШКА: Если пользователь ищет "Lada" или ставит год 2012, 
+        // премиум-машин по его фильтрам не найдется.
+        // В таком случае мы сбрасываем его фильтры и показываем ГЛОБАЛЬНЫЙ рандомный премиум!
+        if (data.length === 0) {
+          const fallbackParams = {
+            sort: 'random',
+            price_min: 60000,
+            price_max: 110000,
+            hide_lease: true,
+            limit: 8,
+            offset: 0
+          };
+          const fallbackResponse = await axios.get('/cars', { params: fallbackParams });
+          data = fallbackResponse.data;
         }
+        
+        if (isMounted) setDeals(data);
       } catch (error) {
-        console.error("Ошибка загрузки низа рынка", error);
+        console.error("Ошибка загрузки премиум сегмента", error);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -60,7 +58,7 @@ export default function BottomMarketSlider({ filters, rates }) {
 
     fetchDeals();
     return () => { isMounted = false; };
-  }, [filters, rates]); // Добавили rates в зависимости
+  }, [filters, rates]);
 
   const scroll = (direction) => {
     if (sliderRef.current) {
@@ -89,30 +87,33 @@ export default function BottomMarketSlider({ filters, rates }) {
   if (loading || deals.length === 0) return null;
 
   return (
+    // Изменили фон на стильный светло-серый с красным акцентом
     <div 
-      className="mb-10 bg-gradient-to-r from-red-50 to-indigo-50 p-6 rounded-2xl border border-red-100 shadow-inner relative"
+      className="mb-10 bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-3xl border border-gray-800 shadow-2xl relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <Flame className="text-orange-500 fill-orange-500 animate-pulse" size={24} />
-          <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Лучшая цена</h2>
-          <span className="text-sm text-gray-500 font-medium sm:ml-2 hidden sm:block">
-            Лучшие предложения от 35 000 $
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="bg-red-600 p-2 rounded-xl shadow-lg shadow-red-600/30">
+            <Gem className="text-white" size={20} />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-white uppercase tracking-tight">Лучшие предложения</h2>
+            
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
           <button 
             onClick={() => scroll('left')} 
-            className="p-2 bg-white rounded-full shadow-sm text-gray-600 hover:text-red-600 hover:shadow transition-all"
+            className="p-2 bg-white/10 rounded-full shadow-sm text-white hover:bg-red-600 transition-all"
           >
             <ChevronLeft size={20}/>
           </button>
           <button 
             onClick={() => scroll('right')} 
-            className="p-2 bg-white rounded-full shadow-sm text-gray-600 hover:text-red-600 hover:shadow transition-all"
+            className="p-2 bg-white/10 rounded-full shadow-sm text-white hover:bg-red-600 transition-all"
           >
             <ChevronRight size={20}/>
           </button>
@@ -125,6 +126,7 @@ export default function BottomMarketSlider({ filters, rates }) {
       >
         {deals.map(car => (
           <div key={`deal-${car.car_id}`} className="min-w-[280px] w-[280px] snap-start shrink-0">
+            {/* Чтобы карточки на темном фоне смотрелись круто, они остаются белыми */}
             <CarCard car={car} rates={rates} />
           </div>
         ))}
@@ -132,3 +134,10 @@ export default function BottomMarketSlider({ filters, rates }) {
     </div>
   );
 }
+
+
+
+
+
+
+

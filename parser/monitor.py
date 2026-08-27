@@ -60,7 +60,7 @@ async def initial_load(db: Database, parser: EncarParser, batch: int = 200):
         data = await r.json(content_type=None)
         total_on_site = data.get("Count", 0)
 
-    log.info(f"Всего на сайте: {total_on_site:,} объявлений")
+    log.info(f"Всего на сайте: {sitotal_on_te:,} объявлений")
 
     # Уже загруженные ID — пропускаем
     known_ids  = await db.get_known_ids()
@@ -141,8 +141,8 @@ async def live_monitor(db: Database, parser: EncarParser, interval: int = 300):
         updated_count = 0
 
         try:
-            # Проверяем первые 3 страницы (60 авто) — там все свежие
-            ids = await parser.fetch_ids(total=60)
+            # Проверяем первые 3 страницы (2000 авто) — там все свежие
+            ids = await parser.fetch_ids(total=2000)
 
             for car_id in ids:
                 if car_id not in known_ids:

@@ -4,11 +4,11 @@ import CarCard from '../components/CarCard';
 import Filters from '../components/Filters';
 import BottomMarketSlider from '../components/BottomMarketSlider';
 import { Filter } from 'lucide-react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+
 const LIMIT = 30;
 
 // --- ГЛОБАЛЬНЫЙ КЭШ ДЛЯ СОХРАНЕНИЯ СОСТОЯНИЯ КАТАЛОГА ---
-let catalogCache = {
+let historyCache = {
   cars: [],
   offset: 0,
   hasMore: true,
@@ -16,67 +16,25 @@ let catalogCache = {
   searchInput: ''
 };
 
-export default function Catalog() {
+export default function History() {
   // Инициализируем стейты из кэша (если они там есть)
-  const [cars, setCars] = useState(catalogCache.cars);
-  const [offset, setOffset] = useState(catalogCache.offset);
-  const [hasMore, setHasMore] = useState(catalogCache.hasMore);
-  const { make, model } = useParams();
-  const navigate = useNavigate();   
-  const location = useLocation(); 
+  const [cars, setCars] = useState(historyCache.cars);
+  const [offset, setOffset] = useState(historyCache.offset);
+  const [hasMore, setHasMore] = useState(historyCache.hasMore);
   const [searchInput, setSearchInput] = useState(() => {
-    return catalogCache.searchInput || JSON.parse(sessionStorage.getItem('encar_filters') || '{}').search || '';
+    return historyCache.searchInput || JSON.parse(sessionStorage.getItem('encar_history_filters') || '{}').search || '';
   });
   
   const [loading, setLoading] = useState(false);
   const [rates, setRates] = useState(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  // Восстанавливаем фильтры из sessionStorage или подставляем из SEO-ссылки
+  // Восстанавливаем фильтры из sessionStorage
   const [filters, setFilters] = useState(() => {
-    const saved = sessionStorage.getItem('encar_filters');
-    const initial = saved ? JSON.parse(saved) : {};
-    
-    // Если перешли по прямой ссылке (например, /catalog/audi/q5), принудительно ставим фильтры
-    if (make) {
-      initial.manufacturer = make;
-      if (model) {
-        initial.model_group = model;
-      } else {
-        delete initial.model_group; // Сбрасываем модель, если перешли только на марку
-      }
-    }
-    return initial;
+    const saved = sessionStorage.getItem('encar_history_filters');
+    return saved ? JSON.parse(saved) : {};
   });
-  // Динамический Title для вкладки браузера при переходах
-  useEffect(() => {
-    if (make) {
-      const makeClean = make.charAt(0).toUpperCase() + make.slice(1);
-      const modelClean = model ? model.toUpperCase() : '';
-      
-      document.title = model 
-        ? `Купить ${makeClean} ${modelClean} из Кореи в Беларусь с доставкой`
-        : `Купить ${makeClean} из Кореи в Беларусь с доставкой`;
-    } else {
-      document.title = "Авто из Южной Кореи в Беларусь | EncarBel";
-    }
-  }, [make, model]);
 
-  useEffect(() => {
-    let newPath = '/';
-    
-    if (filters.manufacturer) {
-      newPath = `/catalog/${encodeURIComponent(filters.manufacturer.toLowerCase())}`;
-      if (filters.model_group) {
-        newPath += `/${encodeURIComponent(filters.model_group.toLowerCase())}`;
-      }
-    }
-    
-    // Сравниваем текущий URL с новым, чтобы браузер не зациклился
-    if (decodeURIComponent(location.pathname).toLowerCase() !== decodeURIComponent(newPath).toLowerCase()) {
-      navigate(newPath, { replace: true });
-    }
-  }, [filters.manufacturer, filters.model_group, navigate, location.pathname]);
   // Флаг: были ли данные восстановлены при монтировании
   const isFirstRender = useRef(true);
   const isFirstFetch = useRef(true);
@@ -136,10 +94,10 @@ export default function Catalog() {
     setHasMore(true);
     
     // Сбрасываем глобальный кэш, так как пользователь сам поменял фильтр
-    catalogCache.cars = [];
-    catalogCache.offset = 0;
-    catalogCache.hasMore = true;
-    catalogCache.scrollY = 0;
+    historyCache.cars = [];
+    historyCache.offset = 0;
+    historyCache.hasMore = true;
+    historyCache.scrollY = 0;
   }, [filters]);
 
   // Основная загрузка данных
@@ -155,22 +113,19 @@ export default function Catalog() {
       setLoading(true);
       try {
         const apiParams = { ...filters, limit: LIMIT, offset: offset };
-        const { data } = await axios.get('/cars', { params: apiParams });
-
-        // setCars(prev => {
-        //   if (offset === 0) return data;
-        //   return [...prev, ...data];
-        // });
+        const { data } = await axios.get('/history', { params: apiParams });
 
         setCars(prev => {
           if (offset === 0) return data;
-        
+          
+
           const newUniqueCars = data.filter(
             newCar => !prev.some(existingCar => existingCar.car_id === newCar.car_id)
           );
           
           return [...prev, ...newUniqueCars];
         });
+
         setHasMore(data.length === LIMIT);
       } catch (error) {
         console.error("Ошибка загрузки:", error);
@@ -185,7 +140,7 @@ export default function Catalog() {
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 0) {
-        catalogCache.scrollY = window.scrollY;
+        historyCache.scrollY = window.scrollY;
       }
     };
     window.addEventListener('scroll', handleScroll);
@@ -195,17 +150,17 @@ export default function Catalog() {
   // Сохраняем состояние каталога в кэш при размонтировании (уже без scrollY)
   useEffect(() => {
     return () => {
-      catalogCache.cars = cars;
-      catalogCache.offset = offset;
-      catalogCache.hasMore = hasMore;
-      catalogCache.searchInput = searchInput;
+      historyCache.cars = cars;
+      historyCache.offset = offset;
+      historyCache.hasMore = hasMore;
+      historyCache.searchInput = searchInput;
     };
   }, [cars, offset, hasMore, searchInput]);
 
   // Восстанавливаем позицию скролла после монтирования
   useEffect(() => {
-    if (catalogCache.cars.length > 0 && catalogCache.scrollY > 0) {
-      const targetY = catalogCache.scrollY;
+    if (historyCache.cars.length > 0 && historyCache.scrollY > 0) {
+      const targetY = historyCache.scrollY;
       let attempts = 0;
 
       const scrollInterval = setInterval(() => {
@@ -268,7 +223,7 @@ export default function Catalog() {
 
       <div className="flex flex-col lg:flex-row gap-8 items-start">
         <aside className={`w-full lg:w-1/4 ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
-          <Filters filters={filters} setFilters={setFilters} />
+          <Filters filters={filters} setFilters={setFilters} isHistory={true} />
         </aside>
 
         <section className="w-full lg:w-3/4">
@@ -323,9 +278,9 @@ export default function Catalog() {
           </div>
 
           {/* СЛАЙДЕР ПРЕМИУМ СЕГМЕНТА (скрывается, если пользователь использует поиск) */}
-          {!searchInput && (
+          {/* {!searchInput && (
              <BottomMarketSlider filters={filters} rates={rates} />
-          )}
+          )} */}
 
           {/* Сетка автомобилей */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -333,11 +288,12 @@ export default function Catalog() {
               if (cars.length === index + 1) {
                 return (
                   <div ref={lastCarElementRef} key={car.car_id}>
-                    <CarCard car={car} rates={rates} />
+                    <CarCard car={car} rates={rates} isHistory={true} />
                   </div>
                 );
               } else {
-                return <CarCard key={car.car_id} car={car} rates={rates} />;
+                return <CarCard key={car.car_id} car={car} rates={rates} isHistory={true} />;
+
               }
             })}
           </div>
