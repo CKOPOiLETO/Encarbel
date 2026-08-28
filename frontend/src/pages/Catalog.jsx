@@ -295,7 +295,7 @@ export default function Catalog() {
                   type="text"
                   value={searchInput}
                   onChange={e => setSearchInput(e.target.value)}
-                  placeholder="Быстрый поиск (название, ID или ссылка)..."
+                  placeholder="Быстрый поиск (название, VIN, ID или ссылка)..."
                   className="w-full border-gray-300 border rounded-lg p-2.5 pr-10 focus:ring-2 focus:ring-red-600 outline-none text-sm transition-shadow bg-white"
                 />
                 

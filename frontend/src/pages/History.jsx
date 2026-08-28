@@ -117,7 +117,7 @@ export default function History() {
       setLoading(true);
       try {
         const apiParams = { ...filters, limit: LIMIT, offset: offset };
-        const { data } = await axios.get('/cars', { params: apiParams });
+        const { data } = await axios.get('/history', { params: apiParams });
 
         setTotalCount(data.total); // Сохраняем общую цифру с бэкенда
 
@@ -227,7 +227,7 @@ export default function History() {
 
       <div className="flex flex-col lg:flex-row gap-8 items-start">
         <aside className={`w-full lg:w-1/4 ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
-          <Filters filters={filters} setFilters={setFilters} />
+          <Filters filters={filters} setFilters={setFilters} isHistory={true} />
         </aside>
 
         <section className="w-full lg:w-3/4">
@@ -252,7 +252,7 @@ export default function History() {
                   type="text"
                   value={searchInput}
                   onChange={e => setSearchInput(e.target.value)}
-                  placeholder="Быстрый поиск (название, ID или ссылка)..."
+                  placeholder="Быстрый поиск (название, VIN, ID или ссылка)..."
                   className="w-full border-gray-300 border rounded-lg p-2.5 pr-10 focus:ring-2 focus:ring-red-600 outline-none text-sm transition-shadow bg-white"
                 />
                 
