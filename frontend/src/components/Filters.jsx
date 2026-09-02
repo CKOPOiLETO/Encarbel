@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 // --- Вспомогательный компонент: Выпадающий список с поиском (ДЛЯ СТРОК) ---
-function DropdownSearch({ label, options = [], value, onChange, placeholder = 'Выбрать...', disabled = false }) {
+// --- УНИВЕРСАЛЬНЫЙ КОМПОНЕНТ (ПОДДЕРЖИВАЕТ И ОБЫЧНЫЙ ВЫБОР, И МУЛЬТИСЕЛЕКТ) ---
+function DropdownSearch({ label, options = [], value, onChange, placeholder = 'Выбрать...', disabled = false, isMulti = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const dropdownRef = useRef(null);
@@ -19,27 +20,45 @@ function DropdownSearch({ label, options = [], value, onChange, placeholder = '�
   const getLabel = (opt) => isObj ? opt.label : opt;
   const getValue = (opt) => isObj ? opt.value : opt;
 
-  const filtered = options.filter(opt => getLabel(opt).toLowerCase().startsWith(search.toLowerCase()));
+  const filtered = options.filter(opt => getLabel(opt).toLowerCase().includes(search.toLowerCase()));
 
-
+  // Логика выбора для мультиселекта и одиночного режима
   const handleSelect = (option) => {
     const val = getValue(option);
-    onChange(val === value ? '' : val);
-    setSearch('');
-    setIsOpen(false);
+    if (isMulti) {
+      // value здесь — это массив (например, ['X5 (G05)', 'X5 (F15)'])
+      const currentValues = Array.isArray(value) ? value : [];
+      if (currentValues.includes(val)) {
+        onChange(currentValues.filter(item => item !== val));
+      } else {
+        onChange([...currentValues, val]);
+      }
+    } else {
+      onChange(option === value ? '' : val);
+      setIsOpen(false);
+      setSearch('');
+    }
   };
 
   const handleClear = (e) => {
     e.stopPropagation(); 
-    onChange('');
+    onChange(isMulti ? [] : '');
     setSearch('');
     setIsOpen(false);
   };
 
-  const selectedOption = value 
-  ? options.find(opt => String(getValue(opt)).toLowerCase() === String(value).toLowerCase()) 
-  : null;
-  const displayValue = selectedOption ? getLabel(selectedOption) : value;
+  // Красивый текст для шапки селекта
+  let displayValue = placeholder;
+  const currentValues = Array.isArray(value) ? value : (value ? [value] : []);
+
+  if (isMulti) {
+    if (currentValues.length > 0) {
+      displayValue = `Выбрано: ${currentValues.length}`;
+    }
+  } else {
+    const selectedOption = options.find(opt => String(getValue(opt)).toLowerCase() === String(value).toLowerCase());
+    displayValue = selectedOption ? getLabel(selectedOption) : value;
+  }
 
   return (
     <div ref={dropdownRef} className={`relative ${disabled ? 'opacity-50' : ''}`}>
@@ -47,15 +66,15 @@ function DropdownSearch({ label, options = [], value, onChange, placeholder = '�
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={`w-full border rounded-lg p-2.5 flex justify-between items-center transition-colors cursor-pointer ${
-          isOpen ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300 hover:border-gray-400'
+          isOpen ? 'border-red-600 ring-1 ring-red-600' : 'border-gray-300 hover:border-gray-400'
         } ${disabled ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'}`}
       >
-        <span className={`truncate mr-2 ${value ? 'text-gray-900' : 'text-gray-400'}`}>
-          {displayValue || placeholder}
+        <span className={`truncate mr-2 ${currentValues.length > 0 ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+          {displayValue}
         </span>
         
         <div className="flex items-center gap-1 shrink-0">
-          {value && !disabled && (
+          {currentValues.length > 0 && !disabled && (
             <button type="button" onClick={handleClear} className="p-1 text-gray-400 hover:text-red-500 transition-colors">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -75,7 +94,7 @@ function DropdownSearch({ label, options = [], value, onChange, placeholder = '�
             <input
               type="text" value={search} onChange={(e) => setSearch(e.target.value)}
               placeholder="Поиск..."
-              className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none focus:ring-2 focus:ring-red-600"
               autoFocus
             />
           </div>
@@ -83,17 +102,26 @@ function DropdownSearch({ label, options = [], value, onChange, placeholder = '�
             {filtered.length === 0 ? (
               <p className="text-gray-400 text-sm py-2 px-2">Ничего не найдено</p>
             ) : (
-              filtered.map((opt, i) => {
+              filtered.map((opt) => {
                 const val = getValue(opt);
                 const lab = getLabel(opt);
+                const isSelected = isMulti && Array.isArray(value) && value.includes(val);
+
                 return (
                   <button
-                    key={val} type="button" onClick={() => handleSelect(opt)}
-                    className={`w-full text-left p-2 rounded-md text-sm transition-colors ${
-                      value === val ? 'bg-red-100 text-red-700 font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    key={val} 
+                    type="button" 
+                    onClick={() => handleSelect(opt)}
+                    className={`w-full text-left p-2 rounded-md text-sm transition-colors flex items-center justify-between ${
+                      isSelected || value === val ? 'bg-red-50 text-red-700 font-medium' : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
-                    {lab}
+                    <span>{lab}</span>
+                    {isMulti && (
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center text-xs ${isSelected ? 'bg-red-600 border-red-600 text-white' : 'border-gray-300'}`}>
+                        {isSelected ? '✓' : ''}
+                      </span>
+                    )}
                   </button>
                 );
               })
@@ -270,7 +298,7 @@ export default function Filters({ filters, setFilters, isHistory = false }) {
         <div className="space-y-4">
           <DropdownSearch label="Марка" options={options.manufacturers} value={filters.manufacturer || ''} onChange={handleDropdownChange('manufacturer')} placeholder="Все марки" />
           <DropdownSearch label="Модель" options={availableGroups} value={filters.model_group || ''} onChange={handleDropdownChange('model_group')} placeholder={filters.manufacturer ? "Все модели" : "Сначала выберите марку"} disabled={!filters.manufacturer} />
-          <DropdownSearch label="Поколение / Версия" options={availableSpecificModels} value={filters.model || ''} onChange={handleDropdownChange('model')} placeholder={filters.model_group ? "Все поколения" : "Выберите модель"} disabled={!filters.model_group} />
+          <DropdownSearch label="Поколение / Версия" options={availableSpecificModels} value={filters.model || ''} onChange={handleDropdownChange('model')} placeholder={filters.model_group ? "Все поколения" : "Выберите модель" } isMulti={true} disabled={!filters.model_group} />
           {/* <DropdownSearch label="Тип кузова" options={options.body_types} value={filters.body_type || ''} onChange={handleDropdownChange('body_type')} placeholder="Любой кузов" /> */}
           <DropdownSearch 
           label="Цвет кузова" 

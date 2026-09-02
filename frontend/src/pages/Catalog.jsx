@@ -160,6 +160,9 @@ export default function Catalog() {
       setLoading(true);
       try {
         const apiParams = { ...filters, limit: LIMIT, offset: offset };
+        if (Array.isArray(apiParams.model)) {
+          apiParams.model = apiParams.model.join(',');
+        }
         const { data } = await axios.get('/cars', { params: apiParams });
 
         setTotalCount(data.total); // Сохраняем общую цифру с бэкенда
