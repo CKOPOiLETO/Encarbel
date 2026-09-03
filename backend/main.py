@@ -396,7 +396,11 @@ async def get_cars(
     
     if manufacturer: params.append(manufacturer); query += f" AND manufacturer ILIKE ${len(params)}"
     if model_group: params.append(model_group); query += f" AND model_group ILIKE ${len(params)}"
-    if model: params.append(model); query += f" AND model ILIKE ${len(params)}"
+    if model: 
+        models_list = [m.strip() for m in model.split(",") if m.strip()]
+        if models_list:
+            params.append(models_list)
+            query += f" AND model = ANY(${len(params)}::text[])"
     if color: params.append(color); query += f" AND color = ${len(params)}"
 
     if year_min is not None:
@@ -473,7 +477,6 @@ async def get_car(car_id: int):
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT * FROM cars WHERE car_id = $1", car_id)
         
-        # ЕСЛИ МАШИНА НЕ НАЙДЕНА (Возможно, это дубликат)
         if not row:
             vno = await get_encar_vehicle_no(car_id)
             if vno:
