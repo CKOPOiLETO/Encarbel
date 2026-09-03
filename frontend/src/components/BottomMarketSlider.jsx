@@ -88,13 +88,13 @@ export default function BottomMarketSlider({ filters, rates }) {
 
         <div className="flex items-center gap-2">
           <button 
-            onClick={() => scroll('left')} 
+            onClick={() => scroll('left')} aria-label="Влево"
             className="p-2 bg-white/10 rounded-full shadow-sm text-white hover:bg-red-600 transition-all"
           >
             <ChevronLeft size={20}/>
           </button>
           <button 
-            onClick={() => scroll('right')} 
+            onClick={() => scroll('right')} aria-label="Вправо"
             className="p-2 bg-white/10 rounded-full shadow-sm text-white hover:bg-red-600 transition-all"
           >
             <ChevronRight size={20}/>

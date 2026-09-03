@@ -82,6 +82,8 @@ export default function CarCard({ car, rates, isHistory = false }) {
         <img 
           src={photo} 
           alt={car.title} 
+          width="400" 
+          height="208"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
           loading="lazy"
         />
@@ -91,9 +93,9 @@ export default function CarCard({ car, rates, isHistory = false }) {
       </div>
 
       <div className="p-5 flex flex-col flex-grow">
-        <h3 className="font-bold text-base text-gray-800 leading-snug mb-3 line-clamp-2 min-h-[2.5rem]" title={car.title}>
+        <p className="font-bold text-base text-gray-800 leading-snug mb-3 line-clamp-2 min-h-[2.5rem]" title={car.title}>
           {car.title}
-        </h3>
+        </p>
 
         {/* Блок Цены */}
         <div className="mb-4 min-h-[60px] flex flex-col justify-center">

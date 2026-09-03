@@ -59,12 +59,11 @@ export default function CarDetail() {
     useEffect(() => {
     axios.get(`/real-id/${id}`)
       .then(res => {
-        if (res.data) {
-          if (res.data.vehicleId) setCanonicalId(res.data.vehicleId);
-          if (res.data.vin) setVinCode(res.data.vin); // <--- СОХРАНЯЕМ VIN
+        if (res.data && res.data.vehicleId) {
+          setCanonicalId(res.data.vehicleId); 
         }
       })
-      .catch(err => console.error("Ошибка получения данных от Encar:", err));
+      .catch(err => console.error("Ошибка получения истинного ID:", err));
   }, [id]);
     // СИНХРОНИЗАЦИЯ: Автоматически прокручиваем миниатюры при смене главного фото
     useEffect(() => {
@@ -262,7 +261,7 @@ export default function CarDetail() {
           className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4 animate-fade-in"
         >
           {/* Кнопка Влево */}
-          <button onClick={(e) => changePhoto('prev', e)} className="absolute left-2 md:left-8 text-white/50 hover:text-white p-4 z-50 transition-colors">
+          <button onClick={(e) => changePhoto('prev', e)} aria-label="Предыдущее фото" className="absolute left-2 md:left-8 text-white/50 hover:text-white p-4 z-50 transition-colors">
             <ChevronLeft size={48} />
           </button>
 
@@ -275,7 +274,7 @@ export default function CarDetail() {
           />
 
           {/* Кнопка Вправо */}
-          <button onClick={(e) => changePhoto('next', e)} className="absolute right-2 md:right-8 text-white/50 hover:text-white p-4 z-50 transition-colors">
+          <button onClick={(e) => changePhoto('next', e)} aria-label="Следующее фото" className="absolute right-2 md:right-8 text-white/50 hover:text-white p-4 z-50 transition-colors">
             <ChevronRight size={48} />
           </button>
 
@@ -308,13 +307,13 @@ export default function CarDetail() {
               onClick={() => setLightboxImg(mainPhoto)}
               className="bg-gray-100 rounded-xl overflow-hidden h-[350px] md:h-[550px] mb-4 border relative cursor-zoom-in group/photo select-none"
             >
-              <img src={mainPhoto} alt="Main" className="w-full h-full object-contain" />
+              <img src={mainPhoto} alt="Main" width="800" height="550" className="w-full h-full object-cover" />
               
-              <button onClick={(e) => changePhoto('prev', e)} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 text-gray-800 p-2 rounded-full shadow-lg z-10 opacity-0 group-hover/photo:opacity-100 transition-opacity hover:bg-red-600 hover:text-white">
+              <button onClick={(e) => changePhoto('prev', e)} aria-label="Предыдущее фото" className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 text-gray-800 p-2 rounded-full shadow-lg z-10 opacity-0 group-hover/photo:opacity-100 transition-opacity hover:bg-red-600 hover:text-white">
                 <ChevronLeft size={24} />
               </button>
               
-              <button onClick={(e) => changePhoto('next', e)} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 text-gray-800 p-2 rounded-full shadow-lg z-10 opacity-0 group-hover/photo:opacity-100 transition-opacity hover:bg-red-600 hover:text-white">
+              <button onClick={(e) => changePhoto('next', e)} aria-label="Следующее фото" className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 text-gray-800 p-2 rounded-full shadow-lg z-10 opacity-0 group-hover/photo:opacity-100 transition-opacity hover:bg-red-600 hover:text-white">
                 <ChevronRight size={24} />
               </button>
 
@@ -358,28 +357,23 @@ export default function CarDetail() {
               <Info className="text-red-600" size={24} /> Основная информация
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-y-8 gap-x-10">
-              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Марка</span> <span className="font-bold text-lg">{car.manufacturer}</span></div>
-              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Модель</span> <span className="font-bold text-lg">{car.model}</span></div>
+              <div className="border-b pb-2"><span className="text-gray-600 block text-[10px] uppercase tracking-widest mb-1 font-bold">Марка</span> <span className="font-bold text-lg">{car.manufacturer}</span></div>
+              <div className="border-b pb-2"><span className="text-gray-600 block text-[10px] uppercase tracking-widest mb-1 font-bold">Модель</span> <span className="font-bold text-lg">{car.model}</span></div>
               <div className="border-b pb-2">
-                <span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Дата производства</span> 
-                <span className="font-bold text-lg">
-                  {car.manufacture_date ? new Date(car.manufacture_date).toLocaleDateString('ru-RU', {month: 'long', year: 'numeric'}) : car.year}
-                </span>
+                <span className="text-gray-600 block text-[10px] uppercase tracking-widest mb-1 font-bold">VIN-код</span> 
+                <span className="font-bold text-lg text-gray-900">{car.vin || 'Уточняется у менеджера'}</span>
               </div>
               <div className="border-b pb-2">
-                <span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Объем двигателя</span> 
+                <span className="text-gray-600 block text-[10px] uppercase tracking-widest mb-1 font-bold">Объем двигателя</span> 
                 <span className={`font-bold text-lg ${isElectric ? 'text-green-600' : 'text-red-600'}`}>
                   {isElectric ? 'Электро' : (car.displacement_cc ? `${car.displacement_cc} см³` : '-')}
                 </span>
               </div>
-              <div className="border-b pb-2">
-                <span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">VIN-код</span> 
-                <span className="font-bold text-lg text-gray-800">{vinCode || 'Загрузка...'}</span>
-              </div>
-              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Кузов</span> <span className="font-bold text-lg">{car.body_type || '-'}</span></div>
-              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Пробег</span> <span className="font-bold text-lg">{car.mileage?.toLocaleString()} км</span></div>
-              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Топливо</span> <span className="font-bold text-lg">{FUEL_RU_MAP[car.fuel] || car.fuel}</span></div>              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Трансмиссия</span> <span className="font-bold text-lg">{car.transmission}</span></div>
-              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Цвет</span> <span className="font-bold text-lg">{car.color}</span></div>
+              
+              <div className="border-b pb-2"><span className="text-gray-600 block text-[10px] uppercase tracking-widest mb-1 font-bold">Кузов</span> <span className="font-bold text-lg">{car.body_type || '-'}</span></div>
+              <div className="border-b pb-2"><span className="text-gray-600 block text-[10px] uppercase tracking-widest mb-1 font-bold">Пробег</span> <span className="font-bold text-lg">{car.mileage?.toLocaleString()} км</span></div>
+              <div className="border-b pb-2"><span className="text-gray-600 block text-[10px] uppercase tracking-widest mb-1 font-bold">Топливо</span> <span className="font-bold text-lg">{FUEL_RU_MAP[car.fuel] || car.fuel}</span></div>              <div className="border-b pb-2"><span className="text-gray-400 block text-[10px] uppercase tracking-widest mb-1 font-bold">Трансмиссия</span> <span className="font-bold text-lg">{car.transmission}</span></div>
+              <div className="border-b pb-2"><span className="text-gray-600 block text-[10px] uppercase tracking-widest mb-1 font-bold">Цвет</span> <span className="font-bold text-lg">{car.color}</span></div>
             </div>
           </div>
 
@@ -601,7 +595,7 @@ export default function CarDetail() {
 
               <div className="bg-gray-50 rounded-2xl p-5 mb-8 space-y-5 border border-gray-100">
                 <div className="flex justify-between items-center">
-                  <label className="text-sm font-bold text-gray-700 cursor-pointer" htmlFor="priv">Указ №140 (Льгота 50%)</label>
+                  <label className="text-sm font-bold text-gray-800 cursor-pointer" htmlFor="priv">Указ №140 (Льгота 50%)</label>
                   <input 
                     type="checkbox" id="priv"
                     checked={isPrivileged} 
@@ -612,16 +606,18 @@ export default function CarDetail() {
                 
                 {!isElectric ? (
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Рабочий объем (см³)</label>
+                    {/* Добавили htmlFor */}
+                    <label htmlFor="volume-input" className="text-xs font-black text-gray-700 uppercase tracking-widest block">Рабочий объем (см³)</label>
                     <input 
+                      id="volume-input"
                       type="number" 
                       value={volume} 
                       onChange={e => setVolume(Number(e.target.value))}
-                      className="w-full bg-white border border-gray-200 rounded-xl p-3 text-lg font-bold focus:ring-2 focus:ring-red-500 outline-none transition-all shadow-sm"
+                      className="w-full bg-white border border-gray-200 rounded-xl p-3 text-lg font-bold text-gray-900 focus:ring-2 focus:ring-red-500 outline-none transition-all shadow-sm"
                     />
                   </div>
                 ) : (
-                  <div className="mt-2 bg-green-100 text-green-700 p-3 rounded-xl text-center text-xs font-bold uppercase tracking-wider">
+                  <div className="mt-2 bg-green-100 text-green-800 p-3 rounded-xl text-center text-xs font-bold uppercase tracking-wider">
                     Пошлина 0% (Электромобиль)
                   </div>
                 )}
@@ -643,7 +639,7 @@ export default function CarDetail() {
 
                   <div className="pt-4 border-t border-gray-100">
                     <div className="flex justify-between items-center mb-4">
-                      <span className="text-[10px] font-black text-red-600/50 uppercase tracking-widest block">
+                      <span className="text-[10px] font-black text-red-700 uppercase tracking-widest block">
                         3. Таможня и сборы (РБ)
                       </span>
                       <span className="font-bold text-lg">
@@ -655,7 +651,7 @@ export default function CarDetail() {
                         <span className="text-gray-500">
                           Пошлина + Тамож. сбор
                           {isPrivileged && (
-                            <span className="text-[10px] ml-1.5 text-red-500 font-bold uppercase tracking-tighter">
+                            <span className="text-[10px] ml-1.5 text-red-700 font-bold uppercase tracking-tighter">
                               (140 указ)
                             </span>
                           )}
@@ -696,7 +692,7 @@ export default function CarDetail() {
                       <span>USD: {rates.USD.toFixed(3)}</span>
                       <span>EUR: {rates.EUR.toFixed(3)}</span>
                     </div>
-                    <p className="text-[9px] text-gray-300 text-center">*Расчет носит справочный характер</p>
+                    <p className="text-[10px] text-gray-600 text-center font-medium">*Расчет носит справочный характер</p>
                   </div>
 
                   <a 

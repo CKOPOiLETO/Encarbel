@@ -56,8 +56,13 @@ function DropdownSearch({ label, options = [], value, onChange, placeholder = '�
       displayValue = `Выбрано: ${currentValues.length}`;
     }
   } else {
-    const selectedOption = options.find(opt => String(getValue(opt)).toLowerCase() === String(value).toLowerCase());
-    displayValue = selectedOption ? getLabel(selectedOption) : value;
+    // Если value есть и оно не пустая строка — ищем красивый label, иначе показываем placeholder
+    if (value !== undefined && value !== null && value !== '') {
+      const selectedOption = options.find(opt => String(getValue(opt)).toLowerCase() === String(value).toLowerCase());
+      displayValue = selectedOption ? getLabel(selectedOption) : value;
+    } else {
+      displayValue = placeholder; 
+    }
   }
 
   return (
@@ -69,13 +74,13 @@ function DropdownSearch({ label, options = [], value, onChange, placeholder = '�
           isOpen ? 'border-red-600 ring-1 ring-red-600' : 'border-gray-300 hover:border-gray-400'
         } ${disabled ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'}`}
       >
-        <span className={`truncate mr-2 ${currentValues.length > 0 ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+        <span className={`truncate mr-2 ${currentValues.length > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
           {displayValue}
         </span>
         
         <div className="flex items-center gap-1 shrink-0">
           {currentValues.length > 0 && !disabled && (
-            <button type="button" onClick={handleClear} className="p-1 text-gray-400 hover:text-red-500 transition-colors">
+            <button type="button" onClick={handleClear} aria-label="Сбросить фильтр" className="p-1 text-gray-400 hover:text-red-500 transition-colors">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
@@ -188,7 +193,7 @@ function RangeInput({ label, minVal, maxVal, onChange, placeholderMin = 'От', 
       <div className="flex justify-between items-center mb-2">
         <label className="text-sm font-semibold text-gray-600 block">{label}</label>
         {hasValue && (
-          <button type="button" onClick={handleClear} className="p-1 text-gray-400 hover:text-red-500 transition-colors" title="Сбросить">
+          <button type="button" onClick={handleClear} aria-label="Сбросить фильтр" className="p-1 text-gray-400 hover:text-red-500 transition-colors" title="Сбросить">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
@@ -197,7 +202,6 @@ function RangeInput({ label, minVal, maxVal, onChange, placeholderMin = 'От', 
         )}
       </div>
       
-      {/* Рамка вокруг инпутов (Кнопка "Применить" удалена) */}
       <div className="flex items-center gap-2 p-3 border border-gray-200 rounded-xl bg-gray-50/50">
         <input 
           type="number" min="0" value={localMin} onChange={handleMinChange} onKeyDown={preventInvalidChars}

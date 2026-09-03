@@ -70,13 +70,13 @@ export default function FloatingLeadWidget() {
         <div className={`mb-4 bg-white px-5 py-3 rounded-2xl shadow-xl border border-gray-100 relative transition-all duration-500 origin-bottom-right ${showPrompt && !isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}>
           <p className="text-sm font-bold text-gray-800">Напишите нам, мы онлайн!</p>
           <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white transform rotate-45 border-b border-r border-gray-100"></div>
-          <button onClick={(e) => { e.stopPropagation(); setShowPrompt(false); }} className="absolute -top-2 -right-2 bg-gray-200 text-gray-500 rounded-full p-0.5 hover:bg-gray-300">
+          <button onClick={(e) => { e.stopPropagation(); setShowPrompt(false); }} aria-label="Закрыть сообщение" className="absolute -top-2 -right-2 bg-gray-200 text-gray-500 rounded-full p-0.5 hover:bg-gray-300">
             <X size={12} />
           </button>
         </div>
 
         <button 
-          onClick={() => { setIsOpen(true); setShowPrompt(false); }}
+          onClick={() => { setIsOpen(true); setShowPrompt(false); }} aria-label="Оставить заявку"
           className="relative group w-16 h-16 bg-red-600 rounded-full flex items-center justify-center text-white shadow-2xl hover:scale-105 transition-transform"
         >
           <span className="absolute inset-0 rounded-full border-2 border-red-500 opacity-50 animate-ping"></span>

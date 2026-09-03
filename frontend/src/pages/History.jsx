@@ -273,6 +273,7 @@ export default function History() {
               
               <select
                 value={filters.sort || 'newest'}
+                aria-label="Сортировка списка автомобилей"
                 onChange={(e) => setFilters({ ...filters, sort: e.target.value })}
                 className="w-full md:w-auto border-gray-300 border rounded-lg p-2.5 focus:ring-2 focus:ring-red-600 outline-none text-sm font-medium bg-white cursor-pointer"
               >
